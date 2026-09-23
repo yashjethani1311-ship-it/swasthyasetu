@@ -1,6 +1,5 @@
 # Only frontend is a deployable Vercel application.
 backend/
-src/
 scripts/
 supabase/
 output/
