@@ -1,0 +1,54 @@
+-- 046: sourced diagnostic master, separate from performed-test definitions and facility capability.
+begin;
+create table diagnostic_master(id uuid primary key default gen_random_uuid(),import_batch_id uuid not null references master_import_batches(id),source_code text not null,name text not null,category text not null check(category in ('PATHOLOGY','IMAGING','PROCEDURE')),department text,specimen_type text,container text,minimum_volume text,preparation text,transport text,temperature text,stability text,methodology text,unit text,reference_rule text,critical_rule text,turnaround text,panel_components text[] not null default '{}',aliases text[] not null default '{}',active boolean not null default true,updated_at timestamptz not null default now(),unique(import_batch_id,source_code));
+create index diagnostic_master_search on diagnostic_master(category,lower(name),id);
+create table diagnostic_master_bindings(test_id uuid primary key references diagnostic_tests(id),master_id uuid not null references diagnostic_master(id),bound_by uuid not null references auth.users(id),bound_at timestamptz not null default now());
+alter table diagnostic_master enable row level security;alter table diagnostic_master_bindings enable row level security;
+revoke all on diagnostic_master,diagnostic_master_bindings from public,anon,authenticated;
+create function k2_import(p_source text,p_version text,p_reference text,p_assurance text,p_effective date,p_rows jsonb,p_request uuid,p_dry_run boolean default true) returns jsonb language plpgsql security definer set search_path=public as $$
+declare row jsonb;batch master_import_batches;rid uuid;errors jsonb:='[]';n integer:=0;seen text[]:='{}';allowed text[]:=array['source_code','name','category','department','specimen_type','container','minimum_volume','preparation','transport','temperature','stability','methodology','unit','reference_rule','critical_rule','turnaround','panel_components','aliases','active'];
+begin
+ if auth.uid() is null or not is_admin() then raise exception 'Catalog governance required';end if;
+ if p_request is null or p_dry_run is null or p_effective is null or p_assurance is null or p_assurance not in ('DEMO','SOURCE_RECORDED') or coalesce(length(trim(p_source)),0) not between 3 and 200 or coalesce(length(trim(p_version)),0) not between 1 and 100 or coalesce(length(trim(p_reference)),0) not between 3 and 1000 or jsonb_typeof(p_rows) is distinct from 'array' then raise exception 'Source version, evidence, assurance and rows required';end if;
+ if jsonb_array_length(p_rows) not between 1 and 500 or octet_length(p_rows::text)>1000000 then raise exception 'Import limited to 500 rows / 1 MB';end if;
+ for row in select value from jsonb_array_elements(p_rows) loop
+ n:=n+1;
+ if jsonb_typeof(row)<>'object' then errors:=errors||jsonb_build_object('row',n,'error','OBJECT_REQUIRED');continue;end if;
+ if exists(select 1 from jsonb_object_keys(row) k where not(k=any(allowed))) then errors:=errors||jsonb_build_object('row',n,'error','UNKNOWN_FIELD');end if;
+ if jsonb_typeof(row->'source_code') is distinct from 'string' or coalesce(length(trim(row->>'source_code')),0) not between 1 and 100 or jsonb_typeof(row->'name') is distinct from 'string' or coalesce(length(trim(row->>'name')),0) not between 1 and 300 then errors:=errors||jsonb_build_object('row',n,'error','CODE_AND_NAME_REQUIRED');end if;
+ if row->>'source_code'=any(seen) then errors:=errors||jsonb_build_object('row',n,'error','DUPLICATE_CODE');end if;seen:=array_append(seen,row->>'source_code');
+ if exists(select 1 from jsonb_each(row) x where x.key not in ('aliases','active','panel_components') and (jsonb_typeof(x.value) not in ('string','null') or length(x.value#>>'{}')>2000)) or (row?'active' and jsonb_typeof(row->'active')<>'boolean') then errors:=errors||jsonb_build_object('row',n,'error','FIELD_TYPE_OR_LENGTH');end if;
+ if row?'aliases' then if jsonb_typeof(row->'aliases')<>'array' then errors:=errors||jsonb_build_object('row',n,'error','ALIASES_ARRAY_REQUIRED');elsif jsonb_array_length(row->'aliases')>30 or exists(select 1 from jsonb_array_elements(row->'aliases') a where jsonb_typeof(a)<>'string' or length(a#>>'{}')>200) then errors:=errors||jsonb_build_object('row',n,'error','ALIASES_INVALID');end if;end if;
+ if row->>'category' is null or row->>'category' not in ('PATHOLOGY','IMAGING','PROCEDURE') then errors:=errors||jsonb_build_object('row',n,'error','CATEGORY_REQUIRED');end if;
+ if row?'panel_components' then if jsonb_typeof(row->'panel_components')<>'array' then errors:=errors||jsonb_build_object('row',n,'error','PANEL_ARRAY_REQUIRED');elsif jsonb_array_length(row->'panel_components')>100 or exists(select 1 from jsonb_array_elements(row->'panel_components') a where jsonb_typeof(a)<>'string' or length(a#>>'{}')>200) then errors:=errors||jsonb_build_object('row',n,'error','PANEL_INVALID');end if;end if;
+ if p_assurance='DEMO' and (nullif(row->>'reference_rule','') is not null or nullif(row->>'critical_rule','') is not null or nullif(row->>'preparation','') is not null) then errors:=errors||jsonb_build_object('row',n,'error','DEMO_CLINICAL_RULE_FORBIDDEN');end if;
+ end loop;
+ if p_dry_run then return jsonb_build_object('dry_run',true,'valid',jsonb_array_length(errors)=0,'row_count',n,'errors',errors,'persisted',false);end if;
+ if jsonb_array_length(errors)>0 then raise exception 'Invalid import: %',errors;end if;
+ perform pg_advisory_xact_lock(hashtext('DIAGNOSTIC:'||p_source));
+ select * into batch from master_import_batches where request_key=p_request or (kind='DIAGNOSTIC' and source_name=p_source and source_version=p_version) for update;
+ if found then if (batch.kind,batch.source_name,batch.source_version,batch.source_reference,batch.assurance,batch.effective_date,batch.content) is distinct from ('DIAGNOSTIC',p_source,p_version,p_reference,p_assurance,p_effective,p_rows) then raise exception 'Import source/version conflict';end if;return jsonb_build_object('batch_id',batch.id,'row_count',n,'enabled',batch.enabled,'duplicate',true);end if;
+ insert into master_import_batches(kind,source_name,source_version,source_reference,assurance,effective_date,content,request_key,created_by) values('DIAGNOSTIC',p_source,p_version,p_reference,p_assurance,p_effective,p_rows,p_request,auth.uid()) returning id into rid;
+ insert into diagnostic_master(import_batch_id,source_code,name,category,department,specimen_type,container,minimum_volume,preparation,transport,temperature,stability,methodology,unit,reference_rule,critical_rule,turnaround,panel_components,aliases,active)
+ select rid,x->>'source_code',x->>'name',x->>'category',x->>'department',x->>'specimen_type',x->>'container',x->>'minimum_volume',x->>'preparation',x->>'transport',x->>'temperature',x->>'stability',x->>'methodology',x->>'unit',x->>'reference_rule',x->>'critical_rule',x->>'turnaround',array(select jsonb_array_elements_text(coalesce(x->'panel_components','[]'))),array(select jsonb_array_elements_text(coalesce(x->'aliases','[]'))),coalesce((x->>'active')::boolean,true) from jsonb_array_elements(p_rows) x;
+ insert into audit_logs(actor_user_id,action,entity_type,entity_id) values(auth.uid(),'DIAGNOSTIC_MASTER_IMPORTED','master_import_batches',rid::text);
+ return jsonb_build_object('batch_id',rid,'row_count',n,'enabled',true,'duplicate',false);
+end $$;
+
+create function k2_diagnostics(p_query text default '',p_category text default null,p_active boolean default true,p_include_demo boolean default false,p_after uuid default null,p_limit integer default 30,p_id uuid default null) returns jsonb language plpgsql security definer set search_path=public as $$declare result jsonb;begin
+ if auth.uid() is null then raise exception 'Authentication required';end if;
+ if p_limit is null or p_limit not between 1 and 100 or length(coalesce(p_query,''))>200 or p_include_demo is null or (p_category is not null and p_category not in ('PATHOLOGY','IMAGING','PROCEDURE')) then raise exception 'Bounded categorized search required';end if;
+ with latest as (select distinct on(b.source_name,m.source_code) m.*,b.source_name,b.source_version,b.source_reference,b.assurance,b.effective_date from diagnostic_master m join master_import_batches b on b.id=m.import_batch_id where b.enabled and b.effective_date<=current_date order by b.source_name,m.source_code,b.effective_date desc,b.created_at desc,b.id desc),items as (select * from latest m where (p_include_demo or assurance<>'DEMO') and (p_active is null or active=p_active) and (p_id is null or id=p_id) and (p_after is null or id>p_after) and (p_category is null or category=p_category) and (coalesce(p_query,'')='' or strpos(lower(name||' '||source_code||' '||array_to_string(aliases,' ')),lower(p_query))>0) order by id limit p_limit)
+ select coalesce(jsonb_agg(to_jsonb(items) order by id),'[]') into result from items;
+ return jsonb_build_object('items',result,'next_after',case when jsonb_array_length(result)=p_limit then result->(p_limit-1)->>'id' end,'as_of',now(),'notice','Catalog metadata is source-recorded, not independently clinically verified. Missing rules remain UNKNOWN. Facility capability, actual price, preparation confirmation and availability require separate evidence.');end $$;
+create function k2_bind(p_test uuid,p_master uuid) returns void language plpgsql security definer set search_path=public as $$declare m diagnostic_master;t diagnostic_tests;begin
+ if auth.uid() is null or not is_admin() then raise exception 'Diagnostic governance required';end if;
+ select * into m from diagnostic_master where id=p_master;select * into t from diagnostic_tests where id=p_test for update;
+ if m.id is null or t.id is null or m.category is distinct from t.workflow_kind or not m.active or not exists(select 1 from master_import_batches where id=m.import_batch_id and enabled and assurance='SOURCE_RECORDED' and effective_date<=current_date) then raise exception 'Active sourced diagnostic and matching test category required';end if;
+ if exists(select 1 from diagnostic_master_bindings where test_id=t.id and master_id<>m.id) then raise exception 'Existing diagnostic binding is immutable';end if;
+ insert into diagnostic_master_bindings(test_id,master_id,bound_by) values(t.id,m.id,auth.uid()) on conflict(test_id) do nothing;
+ insert into audit_logs(actor_user_id,action,entity_type,entity_id,metadata) values(auth.uid(),'DIAGNOSTIC_MASTER_BOUND','diagnostic_tests',t.id::text,jsonb_build_object('master_id',m.id));
+end $$;
+revoke all on function k2_import(text,text,text,text,date,jsonb,uuid,boolean),k2_diagnostics(text,text,boolean,boolean,uuid,integer,uuid),k2_bind(uuid,uuid) from public,anon,authenticated;
+grant execute on function k2_import(text,text,text,text,date,jsonb,uuid,boolean),k2_diagnostics(text,text,boolean,boolean,uuid,integer,uuid),k2_bind(uuid,uuid) to authenticated;
+commit;

@@ -1,0 +1,13 @@
+# Backend contract additions — 009 and AI v1
+
+All verification RPCs use authenticated JWT identity; approval additionally requires is_admin(). Client writes to audit/evidence are revoked, RLS limits reads to the owner/admin. No service key required by clients.
+
+- v1_submit_document(p_kind text,p_reference text,p_sha256 text,p_request uuid) → evidence UUID. Own provider only. Kind REGISTRATION/QUALIFICATION/LICENSE/OTHER. Immutable metadata with optional lowercase SHA-256. Stable request key; conflicting retry fails. References are not dereferenced by the server and confer no storage access.
+- v1_review_provider(p_provider uuid,p_status text,p_reason text,p_notes text,p_request uuid) → review UUID. PENDING→APPROVED/REJECTED/REVOKED; APPROVED→SUSPENDED/REVOKED; REJECTED/SUSPENDED/REVOKED→PENDING for re-review. Approval requires submitted evidence metadata. Reason required; notes bounded. State, all owned facilities and review are one transaction. Retry returns original receipt, even if later state changed; it does not replay the transition. No direct restore-to-approved.
+- v1_verification_queue(p_status text='PENDING',p_offset integer=0) → up to 50 provider summaries and submitted-document counts. Admin only; offsets 0–100000.
+
+Provider state is the authoritative owner-account approval, not registry verification or independent branch licensure. Migration captures mismatched owned facility states before alignment. An approved provider with any nonapproved place is returned to PENDING; it cannot promote conflicting approvals. Orphaned facilities and legacy incorrect registry flags require explicit governance review; no identities or external verification are invented. Existing normal-user direct mutation grants remain revoked by 005.
+
+AI response contract_version = swasthyasetu-ai-v1. Canonical workflows: PATIENT_HEALTH and DOCTOR_CLINICAL are supported for their respective server-derived roles. CARE_HISTORY maps by server role; PATIENT_HOME→PATIENT_HEALTH; ENCOUNTER/CONSULTATION→DOCTOR_CLINICAL. Cross-role use returns AI_WORKFLOW_NOT_AUTHORIZED (403). HOSPITAL_OPERATIONS/LAB_DIAGNOSTIC/PHARMACY_OPERATIONS/WORKER_FIELD/ADMIN_GOVERNANCE are registered but unavailable (503 after authorized context retrieval where possible). This patient endpoint does not implement operational context retrieval for those roles. Unknown names return INVALID_AI_REQUEST (400). Legacy request defaults remain supported.
+
+No new frontend pages were changed in this backend session. Consumers should keep prescription status distinct from fulfilment and use actual dispense_events.quantity, not infer medicine consumption. The larger compatibility layer and structured delegated worker actions remain pending.

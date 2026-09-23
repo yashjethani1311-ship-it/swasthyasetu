@@ -1,0 +1,4 @@
+-- Replace the email with YOUR admin account email after creating it in Supabase Auth.
+-- Do not run unchanged.
+-- update public.profiles p set role='ADMIN', full_name='Your Admin Name'
+-- from auth.users u where p.id=u.id and u.email='YOUR_ADMIN_EMAIL';

@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {orchestrateCare} from '../supabase/functions/_shared/ai-orchestrator.mjs';
+import {governedConfig} from '../supabase/functions/_shared/model-router.mjs';
+const source={patient_id:'patient',actor_role:'PATIENT',encounters:[{id:'e',started_at:'2026-01-01',clinical_notes:'Private source'}]};
+const primary={provider:'own-model',key:'fixture',url:'https://primary.invalid',model:'v1',model_version_id:'primary',route_revision:1};const fallback={...primary,url:'https://fallback.invalid',model_version_id:'fallback'};
+let calls=0;const transport=async(url,o)=>{calls++;assert.doesNotMatch(o.body,/Private source/);return String(url).includes('primary')?new Response('',{status:503}):new Response(JSON.stringify({outcome:'SOURCES_FOUND',selected_source_ids:['e']}))};
+const run=extra=>orchestrateCare({patientId:'patient',retrieve:async()=>source,config:{...primary,fallback},transport,...extra});
+const r=await run();assert.equal(calls,2);assert.equal(r.fallback_used,true);assert.equal(r.model_route.model_version_id,'fallback');assert.match(r.items[0].text,/Private source/);
+calls=0;let reads=0;await assert.rejects(()=>run({retrieve:async()=>{if(++reads>1)throw Error('REVOKED');return source}}),/REVOKED/);assert.equal(calls,1);
+calls=0;await assert.rejects(()=>run({transport:async()=>{calls++;return new Response(JSON.stringify({outcome:'SOURCES_FOUND',selected_source_ids:['forged']}))}}),/SOURCE_REFERENCE/);assert.equal(calls,1);
+const model=(id,ref,provider_kind='OWN_MODEL')=>({id,version:'v1',config_ref:ref,provider_kind,capabilities:['SOURCE_SELECTION'],languages:['English']});const env={AI_ALLOW_GOVERNED_FALLBACK:'true',PRIMARY_KEY:'fixture',PRIMARY_URL:'https://primary.invalid',FALLBACK_KEY:'fixture',FALLBACK_PROVIDER:'openai-responses'};
+assert.equal((await governedConfig({language:'English',environment:k=>env[k],route:async()=>({revision:1,primary:model('p','PRIMARY'),fallback:model('f','FALLBACK','EXTERNAL'),allow_external_fallback:false})})).fallback,undefined);
+assert.equal((await governedConfig({language:'English',environment:k=>env[k],route:async()=>({revision:1,primary:model('p','PRIMARY'),fallback:model('f','FALLBACK','EXTERNAL'),allow_external_fallback:true})})).fallback.model_version_id,'f');
+console.log('4 governed fallback tests passed');

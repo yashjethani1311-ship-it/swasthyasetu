@@ -1,0 +1,499 @@
+{
+  "groups": {
+    "default": {
+      "role": "Authenticated actor; ownership, assigned provider and current approval are validated server-side.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "a1": {
+      "role": "Patient owner for decisions; approved connected clinician for requests; owner or purpose-authorized clinician for history.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "a2": {
+      "role": "Patient owner for booking; actual appointment patient/assigned approved doctor for transitions; doctor only for encounter start.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "a3": {
+      "role": "Role is derived from authenticated database authority, selected tool and exact scope; see AI tool matrix.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "a4": {
+      "role": "Admin governance, except incident creation/own incident reads are available to authenticated reporters.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "c1": {
+      "role": "Actual patient, assigned approved doctor, assigned pharmacy or assigned worker according to workflow. Never choose role from request JSON.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "c2": {
+      "role": "Approved clinician defines/reviews/activates/proves; admin publishes; approved clinician/admin reads definitions.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "c3": {
+      "role": "Actual care-gap participant; clinician for risk/disposition, active patient authorization where required.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "c4": {
+      "role": "Actual recipient manages preferences/acknowledgement; assigned source participant queues communication.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "d1": {
+      "role": "Authenticated directory reader; only approved sourced practices/facilities returned.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "e1": {
+      "role": "Authorized requesting patient/clinician or explicitly contacted facility manager/reception; service-only transport callbacks are separate.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "g1": {
+      "role": "Patient owner or approved connected purpose-authorized clinician; episode closure requires clinician and evidence.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "h1": {
+      "role": "Approved facility owner or active MANAGER/RECEPTION/CLINICIAN as checked; only patient owner reads own token. Setup/membership changes require manager authority.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "h2": {
+      "role": "Facility-authorized staff for read/setup; assigned approved clinician for clinical admission/transfer/discharge.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "h3": {
+      "role": "Authorized facility MANAGER/RECEPTION for billing operations; recorded payments do not establish external settlement.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "h4": {
+      "role": "Approved facility MANAGER for operations, roster, room and stores; assigned approved clinician for procedure scheduling/cancellation.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "i1": {
+      "role": "Patient owner or currently authorized facility billing/reception; service-only payer responses cannot be forged by clients.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "k1": {
+      "role": "Authenticated catalog reader; ADMIN for import/disable.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "k2": {
+      "role": "Authenticated catalog reader; ADMIN for import/binding.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "l1": {
+      "role": "Patient owner or approved connected clinician with purpose/category/date-scoped consent.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "m1": {
+      "role": "ADMIN model governance; evaluation/route resolution are server-only.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "m2": {
+      "role": "Authenticated feedback owner; independent ADMIN reviewer/governor for review/datasets/training requests; export/training results are server-only.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "p0": {
+      "role": "Actual patient, assigned ordering doctor, destination laboratory or collection-centre owner according to operation.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "p2": {
+      "role": "Approved PHARMACY for own stock/POS; ADMIN records sourced legacy medicine classification; catalog read requires authentication.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "p3": {
+      "role": "Approved PHARMACY managing only its own suppliers/purchases/receipts.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "p4": {
+      "role": "Patient owner requests/acknowledges own fulfilment delivery; assigned approved PHARMACY manages fulfilment and own reporting.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "q1": {
+      "role": "Document-owning patient or approved clinician with DOCUMENTS consent; extraction worker results are service-only.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "r1": {
+      "role": "ADMIN classifies test; assigned performing LAB and designated facility CLINICIAN have distinct study actions.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "r2": {
+      "role": "Assigned LAB validates/communicates; responsible approved DOCTOR acknowledges and records reviewed disposition.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "r3": {
+      "role": "Approved LAB manages own equipment/QC/capability; ordering approved DOCTOR requests recollection.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "r4": {
+      "role": "Source clinician creates/closes; patient decides referral consent; destination staff/clinician act within active consent and actual destination.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "s1": {
+      "role": "Patient owner or approved connected clinician with exact access-purpose consent.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "t1": {
+      "role": "Patient owner or approved connected clinician with purpose/category/date consent; no admin clinical bypass.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "t2": {
+      "role": "Patient owner or purpose-authorized clinician; external completion claims require open gap and authorized source document.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "t3": {
+      "role": "ADMIN for district; authorized facility MANAGER for own facility only.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "t4": {
+      "role": "Actual teleconsult patient or assigned approved DOCTOR; ADMIN selects VIDEO route; issuance/callbacks are server-only.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "v1": {
+      "role": "Provider owner submits evidence; ADMIN independently reviews. DEMO never means registry verified.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "w1": {
+      "role": "Patient grants delegation; approved assigned WORKER submits exact delegated actions and current task version.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "w2": {
+      "role": "ADMIN manages area; assigned clinician assigns task area; approved assigned WORKER reads/assists/retries with active delegation.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "x1": {
+      "role": "ADMIN proposes/reviews identity aliases; both patient owners consent; owner/admin can unlink. No permission expansion.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    },
+    "x2": {
+      "role": "ADMIN registers/enables integrations; scoped facility MANAGER/admin requests synchronization/retry and reads health.",
+      "consent": "No blanket clinical access. Explicit participant/assignment or consent checks described by this RPC apply.",
+      "facility": "No global facility access; entity ownership or scope is validated where applicable.",
+      "freshness": "Timestamps describe recorded evidence. Missing/stale observations remain unknown; retrieval time never proves current clinical state."
+    }
+  },
+  "a1_ai_context": {
+    "shape": "SnapshotContext (see FRONTEND-FINAL-CONTRACTS.md)"
+  },
+  "a2_start_encounter": {
+    "shape": "Row(encounters)"
+  },
+  "a3_tool": {
+    "shape": "{tool, actor_role, retrieved_at, data: ToolData[], scope, purpose:\"AI_ASSISTANCE\", provenance, uncertainty, audit_reference:bigint, freshness}"
+  },
+  "a4_audit": {
+    "shape": "Pick(audit_logs; id,actor_user_id,action,entity_type,entity_id,created_at)[]"
+  },
+  "a4_incidents": {
+    "shape": "Omit(governance_incidents; request_key)[]"
+  },
+  "a4_model_history": {
+    "shape": "{evaluations:Row(ai_model_evaluations)[],approvals:Row(ai_model_approvals)[],hold:Row(ai_model_holds)?}"
+  },
+  "c1_care_context": {
+    "shape": "AuthorizedContext (see FRONTEND-FINAL-CONTRACTS.md)"
+  },
+  "c1_pharmacy_queue": {
+    "shape": "(Row(prescription_fulfilments) & {issued_at,patient_code,full_name,items:(Row(prescription_items)&{dispensed:number})[]?})[]"
+  },
+  "c1_worker_queue": {
+    "shape": "(Row(follow_up_tasks)&{patient_code,full_name,phone?,due_at?})[]"
+  },
+  "c2_versions": {
+    "shape": "(Row(care_pathway_versions)&{code,title})[]"
+  },
+  "c3_resolution": {
+    "shape": "{gap_id,status,due_at?,blocked_reason?,responsible_provider_id?,risk:{rule_version,score,clinical_urgency,overdue_hours,failed_attempts,unacknowledged_critical,vulnerable_context,stale_operational_data},allowed_operational_actions:string[],notice}"
+  },
+  "c4_messages": {
+    "shape": "Pick(care_communications; id,source_kind,source_id,state,created_at,updated_at)[]"
+  },
+  "e1_candidates": {
+    "shape": "{facility_id,name,distance_km,capability_state,recently_recorded_available_beds:number,bed_reserved:false}[]"
+  },
+  "e1_worklist": {
+    "shape": "{contact_id,contact_state,request_id,patient_id,required_capabilities:string[],latitude,longitude,reason,state,transport_state,created_at}[]"
+  },
+  "g1_episode": {
+    "shape": "{episode:Row(care_episodes),nodes:Row(care_nodes)[],dependencies:Row(care_dependencies)[]}"
+  },
+  "g1_next_steps": {
+    "shape": "{episode_id,steps:Row(care_nodes)[],scope}"
+  },
+  "h1_my_token": {
+    "shape": "Omit(reception_queue; request_key,checked_in_by)"
+  },
+  "h1_setup": {
+    "shape": "{departments:Row(facility_departments)[],members:Row(facility_memberships)[]}"
+  },
+  "h2_admissions": {
+    "shape": "{id,patient_id,patient_name,doctor_provider_id,bed_id,status,admitted_at,discharged_at?}[]"
+  },
+  "h2_beds": {
+    "shape": "{id,department_id?,ward,label,state,updated_at,freshness}[]"
+  },
+  "h3_invoice": {
+    "shape": "{invoice:Omit(facility_invoices; request_payload,request_key),lines:Row(facility_invoice_lines)[],payments:Omit(facility_payments; request_key,recorded_by)[],payment_semantics}"
+  },
+  "h4_operations": {
+    "shape": "{duties:{id,user_id,starts_at,ends_at,membership_current}[],procedure_bookings:Omit(hospital_procedure_bookings; request_key)[],store_items:Row(hospital_store_items)[],admitted_in_window:number,discharged_in_window:number,notice}"
+  },
+  "i1_read": {
+    "shape": "{case:Omit(payer_cases; request_key),eligibility_state:\"UNKNOWN_EXTERNAL_CHECK_REQUIRED\",submission_boundary,documents:{record_id}[],events:{event_type,submission_version,external_reference?,created_at}[]}"
+  },
+  "k1_import": {
+    "shape": "{dry_run:true,valid:boolean,row_count:number,errors:{row:number,error:string}[],persisted:false} | {batch_id,row_count:number,enabled:boolean,duplicate:boolean}",
+    "pagination": "At most500 rows and1MB per call; default dry-run true creates no batch.",
+    "notes": "Exact source/version/content replay returns same batch; conflicting content fails. New version appends immutable rows. Disable preserves evidence and exposes preceding enabled versions. Demo clinical/regulatory rules are rejected."
+  },
+  "k1_medicines": {
+    "shape": "{items:(Row(medicine_master)&{source_name,source_version,source_reference,assurance,effective_date})[],next_after:uuid?,as_of,notice}",
+    "pagination": "Ascending UUID keyset, default30/max100. next_after nullable. Latest enabled effective version per source-name/source-code, then filters. Include demo only explicitly.",
+    "notes": "SOURCE_RECORDED is provenance recording, not independent clinical/regulatory verification. Missing reference rules remain unknown. No stock, price or capability inference."
+  },
+  "k2_diagnostics": {
+    "shape": "{items:(Row(diagnostic_master)&{source_name,source_version,source_reference,assurance,effective_date})[],next_after:uuid?,as_of,notice}",
+    "pagination": "Ascending UUID keyset, default30/max100. next_after nullable. Latest enabled effective version per source-name/source-code, then filters. Include demo only explicitly.",
+    "notes": "SOURCE_RECORDED is provenance recording, not independent clinical/regulatory verification. Missing reference rules remain unknown. No stock, price or capability inference."
+  },
+  "k2_import": {
+    "shape": "{dry_run:true,valid:boolean,row_count:number,errors:{row:number,error:string}[],persisted:false} | {batch_id,row_count:number,enabled:boolean,duplicate:boolean}",
+    "pagination": "At most500 rows and1MB per call; default dry-run true creates no batch.",
+    "notes": "Exact source/version/content replay returns same batch; conflicting content fails. New version appends immutable rows. Disable preserves evidence and exposes preceding enabled versions. Demo clinical/regulatory rules are rejected."
+  },
+  "m1_registry": {
+    "shape": "{models:Row(ai_model_versions)[],routes:Row(ai_model_routes)[]}"
+  },
+  "m2_candidates": {
+    "shape": "{id,state,feedback,created_at}[]"
+  },
+  "p0_collection_queue": {
+    "shape": "{id,test_name,diagnostic_test_id,status,ordered_at,collection_centre_id,patient_code,full_name,lab_specimens:Row(lab_specimens)[]?}[]"
+  },
+  "p2_sale": {
+    "shape": "{sale:Omit(pharmacy_sales; request_key,request_payload),items:Row(pharmacy_sale_items)[],payment:Omit(pharmacy_sale_receipts; request_key)?,returns:Omit(pharmacy_returns; request_key)[],tax_semantics}"
+  },
+  "p3_purchases": {
+    "shape": "{id,supplier_id,supplier_order_reference,status,created_at,lines:(Row(pharmacy_purchase_lines)&{quantity_received:number})[]?}[]"
+  },
+  "p4_deliveries": {
+    "shape": "Omit(pharmacy_deliveries; request_key)[]"
+  },
+  "p4_reporting": {
+    "shape": "{stock_attention:{id,medicine_name,strength?,batch_number?,quantity,expiry_date?,updated_at,reorder_point?,low_stock:boolean,expiry_state}[],recent_receipts:{id,fulfilment_id,quantity,price_paid,dispensed_at}[],suppliers:{id,name,reference,active,created_at}[],notice}"
+  },
+  "q1_read": {
+    "shape": "{job:Omit(document_extraction_jobs; request_key),draft:Row(document_extraction_drafts)?,reviews:Omit(document_extraction_reviews; request_key)[],notice}"
+  },
+  "r1_worklist": {
+    "shape": "(Row(diagnostic_studies)&{patient_id,test_name})[]"
+  },
+  "r2_worklist": {
+    "shape": "{id,result_id,patient_id,finding,state,detected_at,acknowledged_at?,closed_at?}[]"
+  },
+  "r3_quality_worklist": {
+    "shape": "{machines:{id,machine_name,protocol,active,last_health_at?,valid_until?,integration_state,quality_state,last_qc_at?}[],rejected:{id,lab_order_id,sample_code,status,rejection_reason?,updated_at,replacement_order_id?}[],notice}"
+  },
+  "r4_referrals": {
+    "shape": "{id,episode_id,patient_id,source_doctor_id,destination_facility_id,destination_department_id?,destination_doctor_id,urgency,state,consent_status,consent_until?,appointment_id?,outcome_encounter_id?,reason?,outcome_summary?,created_at}[]"
+  },
+  "register_demo_patient": {
+    "shape": "{patient_id,patient_code,demo_abha_id,already_registered:boolean}",
+    "role": "Authenticated user onboarding only their own account.",
+    "consent": "No existing clinical history access granted by registration.",
+    "facility": "Provider onboarding can create an owned pending facility; this is not operational approval."
+  },
+  "register_demo_provider": {
+    "shape": "{provider_id,already_registered:true} | {provider_id,facility_id:uuid?,demo_registry_id,already_registered:false}",
+    "role": "Authenticated user onboarding only their own account.",
+    "consent": "No existing clinical history access granted by registration.",
+    "facility": "Provider onboarding can create an owned pending facility; this is not operational approval."
+  },
+  "s1_snapshot_context": {
+    "shape": "SnapshotContext (see FRONTEND-FINAL-CONTRACTS.md)"
+  },
+  "t1_replay": {
+    "shape": "{items:{event_key,patient_id,episode_id?,recorded_at,occurred_at?,actor_user_id?,facility_id?,source_entity,source_id,event_type,previous_state?,resulting_state?,verification_state?,safe_metadata:object,provenance}[],next_cursor:{recorded_at,event_key}?,order,notice}",
+    "pagination": "Keyset descending by recorded_at, event_key. Supply both next_cursor values together. Default50, max100. next_cursor may yield an empty last page.",
+    "notes": "Late evidence orders by recorded_at while occurred_at preserves actual event time. BASELINE means captured existing state; absent historical transitions are not reconstructed."
+  },
+  "t2_twin": {
+    "shape": "CareTwin (see FRONTEND-FINAL-CONTRACTS.md for nested domain shapes)",
+    "pagination": "One episode. Nodes/gaps/pathways/external claims capped100; diagnostics/prescriptions/referrals/followups/payer capped50; emergencies/critical capped30. Omitted records beyond caps require domain worklists.",
+    "notes": "No diagnosis or disease simulation. External claims remain verification pending and never close care by themselves."
+  },
+  "t3_pulse": {
+    "shape": "{scope:{state,district,facility_id?},window_start,window_end_exclusive,last_refreshed,data_freshness,minimum_cell_size:10,metrics:{metric,numerator:number?,denominator:number?,suppression_state}[],provenance,limitations,current_operations:{observed_at,time_basis,metrics:{metric,numerator:number?,denominator:number?,suppression_state}[],limitations}}",
+    "pagination": "One fixed completed calendar month within24months; no patient filters. Cohort minimum20; numerator and complement each minimum10. Suppressed counts both null.",
+    "freshness": "Current recorded source state for a historical appointment cohort, not a reconstruction of end-of-month state. last_refreshed is projection time.",
+    "notes": "No names, patient IDs, phone/address/ABHA. Threshold suppression is not a differential-privacy guarantee. Unmapped practices excluded; no inferred geography. Current capability/stock aggregate is separate from the historical cohort; provider stock maps only to single-site pharmacies."
+  },
+  "t4_join_intent": {
+    "shape": "{status:\"PROVIDER_UNAVAILABLE\",session_id} | {status:\"ISSUANCE_REQUIRED\",intent_id,expires_at}",
+    "notes": "No credential is returned by this RPC. Call the authenticated teleconsult Edge endpoint to obtain a short-lived provider token. Service-role issuance context and master keys never reach the browser."
+  },
+  "t4_open": {
+    "shape": "{session_id,state,provider_state,join_from,expires_at,recording_enabled:false,notice}",
+    "notes": "Stable appointment/session identity. Opening alone does not create a provider room. Join policy: appointment minus15minutes until plus2hours; individual issuance intent expires within2minutes. No recording."
+  },
+  "w1_package": {
+    "shape": "{task_id,patient_id,patient_name,status,version:number,delegations:{delegation_id,actions:string[],valid_until}[],retrieved_at,package_expires_at,storage_requirement}"
+  },
+  "w1_sync": {
+    "shape": "{receipt_id,status:\"ACCEPTED\"|\"CONFLICT\"|\"REJECTED\",result:{appointment_id?,task_id?,outcome_status?,current_version?,error?}}"
+  },
+  "w2_assist": {
+    "shape": "{receipt_id,status:\"ACCEPTED\"|\"CONFLICT\"|\"REJECTED\",result:{appointment_id?,task_id?,outcome_status?,current_version?,error?}}"
+  },
+  "w2_resolve_conflict": {
+    "shape": "{resolution:\"DISCARDED\"} | ({receipt_id,status,result}&{resolution:string})"
+  },
+  "w2_worklist": {
+    "shape": "{areas:Row(worker_areas)[],tasks:{id,patient_id,patient_name,status,sync_version,updated_at,area_id?,gap_type,due_at?,severity,delegations:{id,actions:string[],valid_until}[]}[],notice}"
+  },
+  "x1_candidates": {
+    "shape": "{id,alias_patient_id,canonical_patient_id,alias_confirmed,canonical_confirmed,state,created_at,evidence_reference?,alias_patient_code,alias_name,canonical_patient_code,canonical_name}[]"
+  },
+  "x1_identity": {
+    "shape": "{source_patient_id,canonical_reference,authorization_patient_id,notice}"
+  },
+  "x2_health": {
+    "shape": "{id,kind,provider_name,environment,facility_id?,enabled,revision,health,auth_state,observed_at?,valid_until?,error_code?,last_successful_sync?,latest_sync_state?,truth_state,last_failed_sync?,latest_failure:{run_id,failure_class,retry_count,next_retry_at?,retryable:boolean,error_code?}?}[]"
+  },
+  "is_admin": {
+    "role": "Authenticated read-only permission/identity/validation predicate; returns only its scalar result, not permission to bypass the protected operation.",
+    "consent": "The predicate reports current eligibility only. A later sensitive operation validates access again."
+  },
+  "my_role": {
+    "role": "Authenticated read-only permission/identity/validation predicate; returns only its scalar result, not permission to bypass the protected operation.",
+    "consent": "The predicate reports current eligibility only. A later sensitive operation validates access again."
+  },
+  "my_provider_id": {
+    "role": "Authenticated read-only permission/identity/validation predicate; returns only its scalar result, not permission to bypass the protected operation.",
+    "consent": "The predicate reports current eligibility only. A later sensitive operation validates access again."
+  },
+  "is_approved_provider": {
+    "role": "Authenticated read-only permission/identity/validation predicate; returns only its scalar result, not permission to bypass the protected operation.",
+    "consent": "The predicate reports current eligibility only. A later sensitive operation validates access again."
+  },
+  "a1_has_consent": {
+    "role": "Authenticated read-only permission/identity/validation predicate; returns only its scalar result, not permission to bypass the protected operation.",
+    "consent": "The predicate reports current eligibility only. A later sensitive operation validates access again."
+  },
+  "c1_can_patient": {
+    "role": "Authenticated read-only permission/identity/validation predicate; returns only its scalar result, not permission to bypass the protected operation.",
+    "consent": "The predicate reports current eligibility only. A later sensitive operation validates access again."
+  },
+  "c1_reads_prescription": {
+    "role": "Authenticated read-only permission/identity/validation predicate; returns only its scalar result, not permission to bypass the protected operation.",
+    "consent": "The predicate reports current eligibility only. A later sensitive operation validates access again."
+  },
+  "p0_connected_patient": {
+    "role": "Authenticated read-only permission/identity/validation predicate; returns only its scalar result, not permission to bypass the protected operation.",
+    "consent": "The predicate reports current eligibility only. A later sensitive operation validates access again."
+  },
+  "p0_owns_centre": {
+    "role": "Authenticated read-only permission/identity/validation predicate; returns only its scalar result, not permission to bypass the protected operation.",
+    "consent": "The predicate reports current eligibility only. A later sensitive operation validates access again."
+  },
+  "p0_reads_order": {
+    "role": "Authenticated read-only permission/identity/validation predicate; returns only its scalar result, not permission to bypass the protected operation.",
+    "consent": "The predicate reports current eligibility only. A later sensitive operation validates access again."
+  },
+  "p0_reads_result": {
+    "role": "Authenticated read-only permission/identity/validation predicate; returns only its scalar result, not permission to bypass the protected operation.",
+    "consent": "The predicate reports current eligibility only. A later sensitive operation validates access again."
+  },
+  "p0_storage_allowed": {
+    "role": "Authenticated read-only permission/identity/validation predicate; returns only its scalar result, not permission to bypass the protected operation.",
+    "consent": "The predicate reports current eligibility only. A later sensitive operation validates access again."
+  },
+  "a2_valid_timezone": {
+    "role": "Authenticated read-only permission/identity/validation predicate; returns only its scalar result, not permission to bypass the protected operation.",
+    "consent": "The predicate reports current eligibility only. A later sensitive operation validates access again."
+  },
+  "create_patient_profile": {
+    "role": "Authenticated user onboarding only their own account.",
+    "consent": "No existing clinical history access granted by registration.",
+    "facility": "Provider onboarding can create an owned pending facility; this is not operational approval."
+  },
+  "t4_request_end": {
+    "role": "Current stored teleconsult participant.",
+    "notes": "Returns ENDING when an external room exists; joins are blocked immediately, but actual provider termination still needs trusted receipt. ENDED never completes the clinical appointment."
+  }
+}

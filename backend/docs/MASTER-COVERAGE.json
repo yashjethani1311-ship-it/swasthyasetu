@@ -1,0 +1,206 @@
+[
+  {
+    "requirement": "Identity",
+    "status": "COMPLETE",
+    "implemented": "038/identity tests; governed reversible alias, dual-owner confirmation, cycle/stale-source prevention and unlink.",
+    "remaining": "True destructive merge/unmerge is FUTURE ONLY; no record movement or permission expansion."
+  },
+  {
+    "requirement": "ABDM",
+    "status": "EXTERNAL API REQUIRED",
+    "implemented": "Demo identity explicitly tagged and registry evidence/integration contracts exist.",
+    "remaining": "No live ABHA/HPR/HFR authentication, registry verification or ABDM exchange executed."
+  },
+  {
+    "requirement": "Consent",
+    "status": "COMPLETE",
+    "implemented": "007 purpose/category/date/expiry/revocation; source and post-provider-latency rechecks.",
+    "remaining": "Real Supabase Auth session/consent deployment validation remains."
+  },
+  {
+    "requirement": "Patient Record",
+    "status": "PARTIAL",
+    "implemented": "010 immutable provenance, source history, 041 Replay, private document contracts, signed dated vitals.",
+    "remaining": "No fully reconciled longitudinal allergy/problem/current-medication list; absent facts remain unknown."
+  },
+  {
+    "requirement": "Snapshot",
+    "status": "PARTIAL",
+    "implemented": "028/047/050 consent-grounded signed sources, dated vitals, reviewed transcription, persistent audit reference.",
+    "remaining": "Source excerpts with localized narration; not a full free-form clinical summarizer or medical translation engine."
+  },
+  {
+    "requirement": "Appointment",
+    "status": "COMPLETE",
+    "implemented": "008 atomic book/start/transition; exact practice/doctor/slot/mode, fees/timezone and status consistency.",
+    "remaining": "Real video media service is separately external."
+  },
+  {
+    "requirement": "Doctor Discovery",
+    "status": "COMPLETE",
+    "implemented": "012 actual practice/doctor/facility/location/availability filters and multiple-practice scheduling.",
+    "remaining": "No invented operating hours, geocoding or registry availability."
+  },
+  {
+    "requirement": "Hospital",
+    "status": "PARTIAL",
+    "implemented": "013\u2013015,021,033: scoped reception/token, beds/ADT, clinical discharge, billing, duties/procedure booking/stores, operational tools.",
+    "remaining": "Not a complete enterprise HIS/HMIS: nursing/eMAR, full department-specific clinical modules, payroll/procurement integrations and production MIS remain."
+  },
+  {
+    "requirement": "Lab",
+    "status": "COMPLETE",
+    "implemented": "005/016/017/034: direct/rural custody, pathology/imaging/procedure distinction, verified publication/review, critical lifecycle, QC/recollection.",
+    "remaining": "Actual analyzer/LIS/RIS/PACS integration is EXTERNAL PROVIDER REQUIRED; source references are not verified connectivity."
+  },
+  {
+    "requirement": "Pharmacy",
+    "status": "PARTIAL",
+    "implemented": "006/018/019/035: stock-backed dispensing, POS, supplier purchases/receipts, payments, quarantine returns, delivery/pickup/patient receipt and reporting.",
+    "remaining": "Paper-prescription intake/independent verification is NOT IMPLEMENTED. No automatic substitution or external settlement."
+  },
+  {
+    "requirement": "Worker",
+    "status": "PARTIAL",
+    "implemented": "020/036: exact delegated lookup, assigned tasks, structured assistance/escalation, current-version sync receipts and conflict resolution, clinician verification.",
+    "remaining": "Client-side encrypted offline store/background network synchronization remains separate frontend work."
+  },
+  {
+    "requirement": "Admin",
+    "status": "COMPLETE",
+    "implemented": "009/029/030/037/038/039: approval, model governance, independent training review, incidents, retention metadata, reversible identity and integrations.",
+    "remaining": "Retention policy approval does not execute data deletion. Production operator processes are required."
+  },
+  {
+    "requirement": "Referral",
+    "status": "COMPLETE",
+    "implemented": "024 source/destination/consent/schedule/arrival/encounter/outcome/source closure with source proof.",
+    "remaining": "External referral-network adapters are not connected."
+  },
+  {
+    "requirement": "Payer",
+    "status": "EXTERNAL API REQUIRED",
+    "implemented": "025 persists policy/invoice/document-bound consent and versioned preauth/claim states with trusted callback boundary.",
+    "remaining": "No real payer eligibility, approval, adjudication or settlement request executed."
+  },
+  {
+    "requirement": "Emergency",
+    "status": "EXTERNAL PROVIDER REQUIRED",
+    "implemented": "026 source location/capability/contact/acceptance/actual arrival and encounter closure; freshness explicit.",
+    "remaining": "No actual ambulance dispatch/transport integration or autonomous emergency decision."
+  },
+  {
+    "requirement": "CareGraph",
+    "status": "COMPLETE",
+    "implemented": "011/022 required source-linked episode nodes, versioned pathways, dependencies and evidence-aware closure.",
+    "remaining": "Operational graph; not a model-generated treatment plan."
+  },
+  {
+    "requirement": "CareGap",
+    "status": "COMPLETE",
+    "implemented": "006/022/023/035/042 source-driven gaps, receipt gap, unverified external claim and explicit dispositions.",
+    "remaining": "Missing external evidence cannot be marked completed."
+  },
+  {
+    "requirement": "NextStep",
+    "status": "COMPLETE",
+    "implemented": "011/042 actual completed prerequisites; cancelled prerequisites do not satisfy completion.",
+    "remaining": "Operational readiness, not clinical advice."
+  },
+  {
+    "requirement": "Resolution",
+    "status": "COMPLETE",
+    "implemented": "023 auditable operational risk/attempts and explicit completed/declined/cancelled/transferred/unable/duplicate/deceased dispositions.",
+    "remaining": "No autonomous clinical triage; communications never independently close care."
+  },
+  {
+    "requirement": "Care Replay",
+    "status": "COMPLETE",
+    "implemented": "041 immutable source/event projection, chronology/keyset, provenance, source states, consent and episode scope tests.",
+    "remaining": "Historical gaps cannot be reconstructed; baseline capture and unknown old actor roles remain explicit."
+  },
+  {
+    "requirement": "Care Twin",
+    "status": "COMPLETE",
+    "implemented": "042/048 one-episode source-grounded bounded state, freshness, active gaps, proof, payer/emergency/referral and external evidence pending.",
+    "remaining": "Not a diagnostic digital twin. Domain lists capped; use domain worklists beyond those caps."
+  },
+  {
+    "requirement": "District Pulse",
+    "status": "COMPLETE",
+    "implemented": "043/050 fixed-month source geography/episode cohort and separate current capability/single-site-stock aggregates; minimum and complementary suppression.",
+    "remaining": "Not differential privacy; no fabricated national data, ambiguous multi-site stock or inferred geography."
+  },
+  {
+    "requirement": "AI",
+    "status": "PARTIAL",
+    "implemented": "032/047 server tools across roles, consent recheck, minimum selection signals, source validation, audit metadata and opt-in governed one-retry fallback.",
+    "remaining": "Semantic free-text clinical reasoning is limited. No real provider deployment or trained/validated owned healthcare model. No PHI response cache."
+  },
+  {
+    "requirement": "Owned-model learning",
+    "status": "FUTURE ONLY",
+    "implemented": "029/030 version/evaluation/approval/route and opted-in independently reviewed dataset/checkpoint lineage contracts implemented.",
+    "remaining": "Actual licensed data preparation, training, clinical evaluation, deployment and monitoring are not performed."
+  },
+  {
+    "requirement": "Teleconsult",
+    "status": "EXTERNAL PROVIDER REQUIRED",
+    "implemented": "044/049 persisted participant rooms, short-lived credential boundary, reconnect/end and provider errors; injected adapter tests.",
+    "remaining": "Provider-neutral adapter must be connected to an actual video service; no real room/media/token was created. No recording."
+  },
+  {
+    "requirement": "Communications",
+    "status": "EXTERNAL PROVIDER REQUIRED",
+    "implemented": "031 consented recipient preferences and QUEUED/SENT/DELIVERED/FAILED/NO_RESPONSE/ACKNOWLEDGED receipt lifecycle.",
+    "remaining": "No actual SMS/WhatsApp/email service configured; no message sent."
+  },
+  {
+    "requirement": "Documents/OCR",
+    "status": "EXTERNAL PROVIDER REQUIRED",
+    "implemented": "027 jobs/drafts/versioned reviewed transcription, source ownership and private-object contract.",
+    "remaining": "No actual OCR vendor/model executed; reviewed transcription never proves original authenticity."
+  },
+  {
+    "requirement": "Medicine Master",
+    "status": "COMPLETE",
+    "implemented": "045 governed normalized source version/batch, dry-run CSV/JSON payload preparation, bounded search/exact lookup/inactive/disable and provenance tests.",
+    "remaining": "Catalog infrastructure only. No full licensed Indian dataset imported; demo fixtures are tests, not production catalog data."
+  },
+  {
+    "requirement": "Diagnostic Master",
+    "status": "COMPLETE",
+    "implemented": "046 categorized sourced metadata/rules/panels, version/search/dry-run/disable and governed existing-test binding.",
+    "remaining": "Source clinical rules are text, not a validated rules engine. No complete national dataset or implicit lab capability."
+  },
+  {
+    "requirement": "Integration Hub",
+    "status": "COMPLETE",
+    "implemented": "039/040 enabled/configuration vs observed health, freshness, sync evidence, bounded retries, revision/idempotency/secret boundaries.",
+    "remaining": "Each external system requires a real authenticated adapter and deployment credentials; configuration is not connectivity."
+  },
+  {
+    "requirement": "Security",
+    "status": "PARTIAL",
+    "implemented": "Purpose/role/tenant negative tests; RLS on all application tables; client evidence mutations denied; anonymous definer execution revoked; temporary schema pinned last.",
+    "remaining": "Not production secure or compliance-certified. Real Auth/Storage/Edge E2E, independent pentest, PostgreSQL concurrent/load/restore and operational review remain."
+  },
+  {
+    "requirement": "Audit",
+    "status": "PARTIAL",
+    "implemented": "Clinical source revisions, consent reads, high-risk transition receipts, admin evidence, AI tool/ Snapshot audit references and Replay.",
+    "remaining": "Not every legacy historical event has actor/role metadata. No external immutable log/SIEM integration or retention enforcement service."
+  },
+  {
+    "requirement": "Frontend integration",
+    "status": "NOT IMPLEMENTED",
+    "implemented": "Backend contracts through050 and all207 authenticated RPCs documented. Existing frontend build preserved.",
+    "remaining": "Separately developed frontend still needs integration; no CSS/pages/UI changes in this pass."
+  },
+  {
+    "requirement": "Demo registry IDs",
+    "status": "DEMO ONLY",
+    "implemented": "Explicit DEMO identity records remain separate from external registry verification.",
+    "remaining": "Do not display demo identifiers as official ABHA/HPR/HFR verification."
+  }
+]

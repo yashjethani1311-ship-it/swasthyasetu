@@ -1,0 +1,1999 @@
+import { useEffect, useMemo, useState, useRef } from 'react'
+import {
+    CalendarCheck,
+    Clock3,
+    MapPin,
+    Search,
+    Stethoscope,
+    Video,
+    Volume2,
+    Building2,
+    UserRound,
+    RefreshCw,
+    AlertTriangle
+} from 'lucide-react'
+
+import {
+    Badge,
+    Button,
+    Card,
+    EmptyState,
+    StatusBadge
+} from '@/components/kit'
+
+import { useAuth } from '@/lib/auth'
+import { supabase } from '@/lib/supabase'
+import { useLanguage } from '@/lib/i18n'
+import { speakText } from '@/lib/voice'
+import { navigate } from '@/lib/route'
+import { TeleconsultRoom } from '@/components/TeleconsultRoom'
+
+type Doctor = {
+    id: string
+    full_name: string | null
+    specialization: string | null
+    organization_name: string | null
+    hpr_id: string | null
+    city: string | null
+    state: string | null
+    verification_status: string | null
+}
+
+type Practice = {
+    id: string
+    provider_id: string
+    facility_id: string | null
+    practice_name: string
+    address_line: string | null
+    city: string | null
+    state: string | null
+    postal_code: string | null
+    phone: string | null
+    consultation_mode: string
+    active: boolean
+}
+
+type Schedule = {
+    id: string
+    provider_id: string
+    practice_id: string
+    day_of_week: number
+    start_time: string
+    end_time: string
+    slot_minutes: number
+    active: boolean
+}
+
+type AppointmentRow = {
+    id: string
+    patient_id: string
+    doctor_provider_id: string
+    practice_id: string | null
+    scheduled_at: string
+    mode: string
+    status: string
+    reason: string | null
+    patient_note: string | null
+    duration_minutes: number | null
+    provider_profiles?: {
+        full_name?: string | null
+        specialization?: string | null
+        organization_name?: string | null
+        hpr_id?: string | null
+    } | null
+    provider_practices?: {
+        practice_name?: string | null
+        address_line?: string | null
+        city?: string | null
+        state?: string | null
+    } | null
+}
+
+type Slot = {
+    fee: number | null
+    iso: string
+    label: string
+    dateLabel: string
+}
+
+export function AppointmentsPage() {
+    const { profile } = useAuth()
+
+    if (!profile) return null
+
+    return profile.role === 'PATIENT'
+        ? <PatientAppointments />
+        : <DoctorAppointments />
+}
+
+/* ============================================================
+   PATIENT
+============================================================ */
+
+function PatientAppointments() {
+    const { profile } = useAuth()
+    const { language } = useLanguage()
+
+    const hindi = language === 'Hindi'
+
+    const [patientId, setPatientId] =
+        useState<string | null>(null)
+
+    const [doctors, setDoctors] =
+        useState<Doctor[]>([])
+
+    const [practices, setPractices] =
+        useState<Practice[]>([])
+
+    const [schedules, setSchedules] =
+        useState<Schedule[]>([])
+
+    const [appointments, setAppointments] =
+        useState<AppointmentRow[]>([])
+
+    const [existingAppointments, setExistingAppointments] =
+        useState<AppointmentRow[]>([])
+
+    const [search, setSearch] = useState('')
+    const [directoryCity, setDirectoryCity] = useState('')
+    const [directorySpecialty, setDirectorySpecialty] = useState('')
+    const [directoryOffset, setDirectoryOffset] = useState(0)
+    const [directoryCount, setDirectoryCount] = useState(0)
+    const [teleconsultAppt, setTeleconsultAppt] = useState<AppointmentRow | null>(null)
+
+    const [selectedDoctorId, setSelectedDoctorId] =
+        useState('')
+
+    const [selectedPracticeId, setSelectedPracticeId] =
+        useState('')
+
+    const [selectedSlot, setSelectedSlot] =
+        useState('')
+
+    const [mode, setMode] =
+        useState('PHYSICAL')
+
+    const [reason, setReason] =
+        useState('')
+
+    const [patientNote, setPatientNote] =
+        useState('')
+
+    const [loading, setLoading] =
+        useState(true)
+
+    const [booking, setBooking] =
+        useState(false)
+
+    const [message, setMessage] =
+        useState('')
+
+    const [errorMessage, setErrorMessage] =
+        useState('')
+
+    const [cancellingId, setCancellingId] =
+        useState<string | null>(null)
+
+    const [reschedulingAppt, setReschedulingAppt] =
+        useState<AppointmentRow | null>(null)
+
+    useEffect(() => {
+        loadEverything()
+    }, [profile?.id])
+
+    useEffect(() => { setDirectoryOffset(0); setSelectedDoctorId(''); setSelectedPracticeId(''); setSelectedSlot('') }, [search, directoryCity, directorySpecialty, mode])
+    useEffect(() => {
+        let active = true
+        const timer = setTimeout(() => { void (async () => {
+            if (!search.trim() && !directoryCity.trim() && !directorySpecialty.trim()) { setDoctors([]); setPractices([]); setSchedules([]); setDirectoryCount(0); return }
+            const filters: Record<string, unknown> = { mode }
+            if (search.trim()) filters.search = search.trim()
+            if (directoryCity.trim()) filters.city = directoryCity.trim()
+            if (directorySpecialty.trim()) filters.specialization = directorySpecialty.trim()
+            const r = await supabase.rpc('d1_practices', { p_filters: filters, p_offset: directoryOffset, p_limit: 25 })
+            if (!active) return
+            if (r.error) { setErrorMessage('Unable to search doctors. Please retry.'); setDoctors([]); return }
+            const rows = r.data ?? []
+            setDirectoryCount(rows.length)
+            const ids = rows.map((r: any) => r.practice_id)
+            const [pr, sc] = ids.length ? await Promise.all([
+                supabase.from('provider_practices').select('*').in('id', ids),
+                supabase.from('provider_schedules').select('*').in('practice_id', ids).eq('active', true),
+            ]) : [{data: [], error: null}, {data: [], error: null}]
+            if (!active) return
+            if(pr.error || sc.error) { setErrorMessage('Practice details could not be loaded.'); return }
+            setDoctors(Array.from(new Map(rows.map((r: any) => [r.doctor_id, {id:r.doctor_id,full_name:r.doctor_name,specialization:r.specialization,organization_name:r.practice_name,hpr_id:null,city:r.city,state:r.state,verification_status:'APPROVED'}])).values()) as Doctor[])
+            setPractices(pr.data ?? []); setSchedules(sc.data ?? [])
+        })() }, 350)
+        return () => { active = false; clearTimeout(timer) }
+    }, [search, directoryCity, directorySpecialty, directoryOffset, mode])
+
+    async function loadEverything() {
+        if (!profile?.id) return
+
+        setLoading(true)
+        setErrorMessage('')
+
+        const {
+            data: patient,
+            error: patientError
+        } = await supabase
+            .from('patient_profiles')
+            .select('id')
+            .eq('user_id', profile.id)
+            .maybeSingle()
+
+        if (patientError || !patient) {
+            console.error(
+                'Patient profile error:',
+                patientError
+            )
+
+            setErrorMessage(
+                hindi
+                    ? 'आपकी रोगी प्रोफ़ाइल नहीं मिली।'
+                    : 'Your patient profile could not be found.'
+            )
+
+            setLoading(false)
+            return
+        }
+
+        setPatientId(patient.id)
+
+        const [appointmentResult, existingResult] = await Promise.all([
+            supabase
+                .from('appointments')
+                .select(
+                    `
+          *,
+          provider_profiles!appointments_doctor_provider_id_fkey(
+            full_name,
+            specialization,
+            organization_name,
+            hpr_id
+          ),
+          provider_practices(
+            practice_name,
+            address_line,
+            city,
+            state
+          )
+          `
+                )
+                .eq('patient_id', patient.id)
+                .order('scheduled_at', {
+                    ascending: true
+                }),
+
+            supabase
+                .from('appointments')
+                .select(
+                    `
+          id,
+          patient_id,
+          doctor_provider_id,
+          practice_id,
+          scheduled_at,
+          mode,
+          status,
+          reason,
+          patient_note,
+          duration_minutes
+          `
+                )
+                .gte(
+                    'scheduled_at',
+                    new Date().toISOString()
+                )
+                .not(
+                    'status',
+                    'in',
+                    '("CANCELLED","REJECTED")'
+                )
+        ])
+
+        if (appointmentResult.error) {
+            console.error(
+                'Appointment load error:',
+                appointmentResult.error
+            )
+        }
+
+        if (existingResult.error) {
+            console.error(
+                'Existing slots error:',
+                existingResult.error
+            )
+        }
+
+        setAppointments(
+            (appointmentResult.data ?? []) as unknown as AppointmentRow[]
+        )
+
+        setExistingAppointments(
+            (existingResult.data ?? []) as AppointmentRow[]
+        )
+
+        const savedDoctorId = sessionStorage.getItem('swasthyasetu-selected-doctor-id')
+        const savedPracticeId = sessionStorage.getItem('swasthyasetu-selected-practice-id')
+        const savedMode = sessionStorage.getItem('swasthyasetu-selected-mode')
+        if (savedDoctorId) {
+            setSelectedDoctorId(savedDoctorId)
+            sessionStorage.removeItem('swasthyasetu-selected-doctor-id')
+        }
+        if (savedPracticeId) {
+            setSelectedPracticeId(savedPracticeId)
+            sessionStorage.removeItem('swasthyasetu-selected-practice-id')
+        }
+        if (savedMode) {
+            setMode(savedMode)
+            sessionStorage.removeItem('swasthyasetu-selected-mode')
+        }
+
+        setLoading(false)
+    }
+
+    const filteredDoctors = useMemo(() => {
+        const q = search
+            .trim()
+            .toLowerCase()
+
+        if (!q) return doctors
+
+        return doctors.filter(doctor => {
+            const doctorPractices =
+                practices.filter(
+                    practice =>
+                        practice.provider_id === doctor.id
+                )
+
+            const text = [
+                doctor.full_name,
+                doctor.specialization,
+                doctor.organization_name,
+                doctor.hpr_id,
+                doctor.city,
+                doctor.state,
+                ...doctorPractices.flatMap(
+                    practice => [
+                        practice.practice_name,
+                        practice.city,
+                        practice.state,
+                        practice.address_line
+                    ]
+                )
+            ]
+                .filter(Boolean)
+                .join(' ')
+                .toLowerCase()
+
+            return text.includes(q)
+        })
+    }, [search, doctors, practices])
+
+    const selectedDoctor =
+        doctors.find(
+            doctor =>
+                doctor.id === selectedDoctorId
+        ) ?? null
+
+    const doctorPractices = useMemo(() => {
+        if (!selectedDoctorId) return []
+
+        return practices.filter(
+            practice =>
+                practice.provider_id ===
+                selectedDoctorId
+        )
+    }, [practices, selectedDoctorId])
+
+    const selectedPractice =
+        practices.find(
+            practice =>
+                practice.id === selectedPracticeId
+        ) ?? null
+
+    const [slotsLoading,setSlotsLoading]=useState(false)
+    const [slotError,setSlotError]=useState('')
+    const [slotsVersion,setSlotsVersion]=useState(0)
+    const [availableSlots,setAvailableSlots]=useState<Slot[]>([])
+    const bookingAttempt=useRef<{signature:string;key:string}|null>(null)
+
+    // Consume the discovery handoff from the Doctors page once, then clear it.
+    const handoffApplied = useRef(false)
+    useEffect(() => {
+        if (handoffApplied.current) return
+        const docId = sessionStorage.getItem('swasthyasetu-selected-doctor-id')
+        if (!docId) return
+        handoffApplied.current = true
+        const practiceId = sessionStorage.getItem('swasthyasetu-selected-practice-id')
+        const storedMode = sessionStorage.getItem('swasthyasetu-selected-mode')
+        setSelectedDoctorId(docId)
+        if (practiceId) setSelectedPracticeId(practiceId)
+        if (storedMode === 'TELECONSULT' || storedMode === 'PHYSICAL') setMode(storedMode)
+        sessionStorage.removeItem('swasthyasetu-selected-doctor-id')
+        sessionStorage.removeItem('swasthyasetu-selected-doctor-name')
+        sessionStorage.removeItem('swasthyasetu-selected-practice-id')
+        sessionStorage.removeItem('swasthyasetu-selected-mode')
+    }, [])
+
+    useEffect(()=>{let active=true;setAvailableSlots([]);setSelectedSlot('');setSlotError('');setSlotsLoading(Boolean(selectedPracticeId));if(selectedPracticeId){void supabase.rpc('a2_available_slots',{p_practice:selectedPracticeId,p_mode:mode}).then(({data,error})=>{if(!active)return;setSlotsLoading(false);if(error){setSlotError(error.message);return}setAvailableSlots((data??[]).map((r:any)=>({iso:r.scheduled_at,fee:r.consultation_fee===null?null:Number(r.consultation_fee),dateLabel:new Date(r.scheduled_at).toLocaleDateString(hindi?'hi-IN':'en-IN',{timeZone:r.practice_timezone}),label:new Date(r.scheduled_at).toLocaleTimeString(hindi?'hi-IN':'en-IN',{timeZone:r.practice_timezone,hour:'2-digit',minute:'2-digit'})+' · '+r.practice_timezone+' · '+(r.consultation_fee===null?(hindi?'शुल्क की पुष्टि करें':'Fee: confirm with practice'):'₹'+r.consultation_fee)})))})}return()=>{active=false}},[selectedPracticeId,mode,hindi,slotsVersion])
+
+    function chooseDoctor(doctorId: string) {
+        setSelectedDoctorId(doctorId)
+        setSelectedPracticeId('')
+        setSelectedSlot('')
+        setMessage('')
+        setErrorMessage('')
+
+        const doctorPracticeList =
+            practices.filter(
+                practice =>
+                    practice.provider_id === doctorId
+            )
+
+        if (doctorPracticeList.length === 1) {
+            const practice =
+                doctorPracticeList[0]
+
+            setSelectedPracticeId(
+                practice.id
+            )
+
+            if (
+                practice.consultation_mode ===
+                'TELECONSULT'
+            ) {
+                setMode('TELECONSULT')
+            } else {
+                setMode('PHYSICAL')
+            }
+        }
+    }
+
+    function choosePractice(
+        practiceId: string
+    ) {
+        setSelectedPracticeId(practiceId)
+        setSelectedSlot('')
+        setMessage('')
+        setErrorMessage('')
+
+        const practice =
+            practices.find(
+                item =>
+                    item.id === practiceId
+            )
+
+        if (!practice) return
+
+        if (
+            practice.consultation_mode ===
+            'TELECONSULT'
+        ) {
+            setMode('TELECONSULT')
+        }
+
+        if (
+            practice.consultation_mode ===
+            'PHYSICAL'
+        ) {
+            setMode('PHYSICAL')
+        }
+    }
+
+    async function bookAppointment() {
+        if (
+            !patientId ||
+            !selectedDoctorId ||
+            !selectedPracticeId ||
+            !selectedSlot
+        ) {
+            setErrorMessage(
+                hindi
+                    ? 'डॉक्टर, जगह और समय चुनें।'
+                    : 'Select a doctor, practice and time.'
+            )
+
+            return
+        }
+
+        if(booking)return
+        const signature=JSON.stringify([selectedPracticeId,selectedSlot,mode,reason,patientNote])
+        if(bookingAttempt.current?.signature!==signature)bookingAttempt.current={signature,key:crypto.randomUUID()}
+        setBooking(true)
+        setMessage('')
+        setErrorMessage('')
+
+        const {
+            error
+        } = await supabase.rpc('a2_book_appointment', {
+            p_expected_fee:availableSlots.find(s=>s.iso===selectedSlot)?.fee??null,p_practice:selectedPracticeId,p_slot:selectedSlot,p_mode:mode,p_reason:reason.trim()||null,p_note:patientNote.trim()||null,p_request:bookingAttempt.current!.key
+        })
+
+        if (error) {
+            setSlotsVersion(v=>v+1)
+            console.error(
+                'Appointment booking error:',
+                error
+            )
+
+            if (
+                error.code === '23505'
+            ) {
+                setErrorMessage(
+                    hindi
+                        ? 'यह समय अभी किसी और ने ले लिया है। दूसरा समय चुनें।'
+                        : 'This slot was just booked by someone else. Please select another time.'
+                )
+            } else {
+                setErrorMessage(
+                    error.message
+                )
+            }
+
+            setBooking(false)
+            return
+        }
+
+        const isReschedule = !!reschedulingAppt
+        if (reschedulingAppt) {
+            try {
+                await supabase.rpc('a2_appointment_transition', {
+                    p_appointment: reschedulingAppt.id,
+                    p_status: 'CANCELLED'
+                })
+            } catch (transitionErr) {
+                console.warn('Prior appointment cancel transition notice:', transitionErr)
+            }
+            setReschedulingAppt(null)
+        }
+
+        setMessage(
+            isReschedule
+                ? (hindi
+                    ? 'अपॉइंटमेंट सफलतापूर्वक पुनः निर्धारित हो गया है।'
+                    : 'Appointment successfully rescheduled.')
+                : (hindi
+                    ? 'डॉक्टर से मिलने का अनुरोध भेज दिया गया है।'
+                    : 'Appointment request sent successfully.')
+        )
+
+        bookingAttempt.current=null
+        setSelectedSlot('')
+        setReason('')
+        setPatientNote('')
+
+        await loadEverything()
+
+        setBooking(false)
+    }
+
+    async function cancelAppointment(appointmentId: string) {
+        if (cancellingId) return
+        setCancellingId(appointmentId)
+        setErrorMessage('')
+        setMessage('')
+        try {
+            const { error } = await supabase.rpc('a2_appointment_transition', {
+                p_appointment: appointmentId,
+                p_status: 'CANCELLED'
+            })
+            if (error) throw error
+            setMessage(
+                hindi
+                    ? 'अपॉइंटमेंट रद्द कर दिया गया है।'
+                    : 'Appointment cancelled successfully.'
+            )
+            await loadEverything()
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : (err as { message?: string })?.message ?? 'Failed to cancel appointment'
+            setErrorMessage(msg)
+        } finally {
+            setCancellingId(null)
+        }
+    }
+
+    function startReschedule(appointment: AppointmentRow) {
+        setReschedulingAppt(appointment)
+        setSelectedDoctorId(appointment.doctor_provider_id)
+        if (appointment.practice_id) {
+            setSelectedPracticeId(appointment.practice_id)
+        }
+        setMode(appointment.mode === 'TELECONSULT' ? 'TELECONSULT' : 'PHYSICAL')
+        setSelectedSlot('')
+        setReason(appointment.reason || '')
+        setPatientNote(appointment.patient_note || '')
+        setMessage('')
+        setErrorMessage('')
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+
+    function cancelReschedule() {
+        setReschedulingAppt(null)
+        setSelectedSlot('')
+    }
+
+    function listenToPage() {
+        const upcoming =
+            appointments.filter(
+                appointment =>
+                    new Date(
+                        appointment.scheduled_at
+                    ).getTime() >= Date.now() &&
+                    ![
+                        'CANCELLED',
+                        'REJECTED'
+                    ].includes(
+                        appointment.status
+                    )
+            )
+
+        if (hindi) {
+            const doctorCount =
+                doctors.length
+
+            const upcomingText =
+                upcoming.length > 0
+                    ? `आपके ${upcoming.length} आने वाले डॉक्टर से मिलने के समय दर्ज हैं।`
+                    : 'अभी डॉक्टर से मिलने का कोई आने वाला समय दर्ज नहीं है।'
+
+            speakText(
+                `यह डॉक्टर से मिलने वाला पेज है।
+        आपकी वर्तमान खोज के लिए ${doctorCount} सत्यापित डॉक्टर सूचीबद्ध हैं।
+        ${upcomingText}
+        डॉक्टर खोजने के लिए नाम, बीमारी के डॉक्टर की किस्म, एच पी आर नंबर, शहर या अस्पताल का नाम लिख सकते हैं।
+        डॉक्टर चुनने के बाद अस्पताल या क्लिनिक और उपलब्ध समय चुनें।`,
+                'Hindi'
+            )
+
+            return
+        }
+
+        speakText(
+            `This is the appointments page.
+      There are ${doctors.length} verified doctors listed for your current search.
+      You have ${upcoming.length} upcoming appointment records.
+      Search by doctor name, specialization, HPR ID, city, clinic or hospital.
+      Then select a practice location and an available time slot.`,
+            'English'
+        )
+    }
+
+    function listenDoctor(
+        doctor: Doctor
+    ) {
+        const doctorPracticeList =
+            practices.filter(
+                practice =>
+                    practice.provider_id ===
+                    doctor.id
+            )
+
+        const practiceText =
+            doctorPracticeList.length
+                ? doctorPracticeList
+                    .map(
+                        practice =>
+                            `${practice.practice_name}${practice.city
+                                ? `, ${practice.city}`
+                                : ''
+                            }`
+                    )
+                    .join('. ')
+                : hindi
+                    ? 'अभी क्लिनिक की जानकारी नहीं है'
+                    : 'No practice location is currently listed'
+
+        if (hindi) {
+            speakText(
+                `डॉक्टर ${doctor.full_name ?? ''}.
+        ${doctor.specialization
+                    ? `ये ${doctor.specialization} के डॉक्टर हैं।`
+                    : ''
+                }
+        ${doctor.hpr_id
+                    ? `एच पी आर पहचान ${doctor.hpr_id}.`
+                    : ''
+                }
+        ये इन जगहों पर मिलते हैं। ${practiceText}.`,
+                'Hindi'
+            )
+
+            return
+        }
+
+        speakText(
+            `Doctor ${doctor.full_name ?? ''}.
+      ${doctor.specialization
+                ? `Specialization: ${doctor.specialization}.`
+                : ''
+            }
+      ${doctor.hpr_id
+                ? `HPR ID: ${doctor.hpr_id}.`
+                : ''
+            }
+      Practice locations: ${practiceText}.`,
+            'English'
+        )
+    }
+
+    function listenAppointment(
+        appointment: AppointmentRow
+    ) {
+        const doctorName =
+            appointment.provider_profiles
+                ?.full_name ??
+            (hindi ? 'डॉक्टर' : 'Doctor')
+
+        const place =
+            appointment.provider_practices
+                ?.practice_name ?? ''
+
+        const date =
+            formatDateTime(
+                appointment.scheduled_at,
+                hindi
+            )
+
+        if (hindi) {
+            speakText(
+                `आपका डॉक्टर से मिलने का समय।
+        डॉक्टर ${doctorName}.
+        ${date}.
+        ${place
+                    ? `जगह ${place}.`
+                    : ''
+                }
+        स्थिति ${appointment.status}.`,
+                'Hindi'
+            )
+
+            return
+        }
+
+        speakText(
+            `Your appointment is with ${doctorName}.
+      ${date}.
+      ${place
+                ? `Location: ${place}.`
+                : ''
+            }
+      Status: ${appointment.status}.`,
+            'English'
+        )
+    }
+
+    if (loading) {
+        return (
+            <div className="py-16 text-center text-sm text-muted-foreground">
+                {hindi
+                    ? 'डॉक्टर और समय की जानकारी लोड हो रही है...'
+                    : 'Loading doctors and appointments...'}
+            </div>
+        )
+    }
+
+    return (
+        <div className="space-y-6">
+            {teleconsultAppt && (
+                <TeleconsultRoom
+                    role="PATIENT"
+                    appointmentId={teleconsultAppt.id}
+                    doctorName={teleconsultAppt.provider_profiles?.full_name ?? (hindi ? 'डॉक्टर' : 'Doctor')}
+                    scheduledAt={teleconsultAppt.scheduled_at}
+                    onClose={() => setTeleconsultAppt(null)}
+                />
+            )}
+
+            {/* HEADER */}
+            <section className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                    <p className="text-sm font-medium text-primary">
+                        {hindi
+                            ? 'डॉक्टर से मिलें'
+                            : 'Appointments'}
+                    </p>
+
+                    <h1 className="mt-1 text-2xl font-bold md:text-3xl">
+                        {hindi
+                            ? 'डॉक्टर खोजें और समय लें'
+                            : 'Find a doctor & book'}
+                    </h1>
+
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+                        {hindi
+                            ? 'सत्यापित डॉक्टर खोजें, अस्पताल या क्लिनिक चुनें और उपलब्ध समय लें।'
+                            : 'Find a verified doctor, choose their practice location and book an available slot.'}
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    onClick={listenToPage}
+                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold transition hover:bg-secondary"
+                >
+                    <Volume2 className="size-4" />
+
+                    {hindi
+                        ? 'यह पेज सुनें'
+                        : 'Listen to this page'}
+                </button>
+            </section>
+
+            {/* SEARCH */}
+            <Card>
+                <div className="flex items-center gap-3">
+                    <Search className="size-5 shrink-0 text-muted-foreground" />
+
+                    <input
+                        value={search}
+                        onChange={event =>
+                            setSearch(
+                                event.target.value
+                            )
+                        }
+                        placeholder={
+                            hindi
+                                ? 'डॉक्टर का नाम, किस तरह के डॉक्टर, HPR नंबर, शहर या अस्पताल खोजें'
+                                : 'Search doctor by name'
+                        }
+                        className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                    />
+                </div>
+            </Card>
+
+            <Card className="flex flex-wrap gap-3">
+                <input aria-label="City" placeholder="City" value={directoryCity} onChange={e => setDirectoryCity(e.target.value)} />
+                <input aria-label="Specialty" placeholder="Specialty" value={directorySpecialty} onChange={e => setDirectorySpecialty(e.target.value)} />
+                <Button disabled={directoryOffset === 0} onClick={() => setDirectoryOffset(Math.max(0, directoryOffset - 25))}>Previous</Button>
+                <Button disabled={directoryCount < 25} onClick={() => setDirectoryOffset(directoryOffset + 25)}>Next</Button>
+                <p className="text-xs text-muted-foreground">Enter a name, city or specialty. Appointment times are confirmed from recorded slots.</p>
+            </Card>
+            {/* DOCTORS */}
+            <section>
+                <div className="flex items-center justify-between gap-3">
+                    <div>
+                        <h2 className="text-lg font-semibold">
+                            {hindi
+                                ? 'उपलब्ध डॉक्टर'
+                                : 'Matching doctors'}
+                        </h2>
+
+                        <p className="mt-1 text-xs text-muted-foreground">
+                            {hindi
+                                ? 'केवल SwasthyaSetu में मंजूर किए गए डॉक्टर यहाँ दिखते हैं।'
+                                : 'Practices matching your search. Select a practice to check recorded appointment times.'}
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={loadEverything}
+                        className="grid size-9 place-items-center rounded-xl border border-border hover:bg-secondary"
+                        title={
+                            hindi
+                                ? 'फिर से लोड करें'
+                                : 'Refresh'
+                        }
+                    >
+                        <RefreshCw className="size-4" />
+                    </button>
+                </div>
+
+                {filteredDoctors.length === 0 ? (
+                    <Card className="mt-4">
+                        <EmptyState
+                            text={
+                                doctors.length === 0
+                                    ? hindi
+                                        ? 'अभी कोई मंजूर डॉक्टर उपलब्ध नहीं है। डॉक्टर के खाते को मंजूरी मिलने के बाद वह यहाँ दिखेगा।'
+                                        : 'No approved doctor is available yet. A doctor will appear here after their account is approved.'
+                                    : hindi
+                                        ? 'इस खोज से कोई डॉक्टर नहीं मिला।'
+                                        : 'No doctor matched your search.'
+                            }
+                        />
+                    </Card>
+                ) : (
+                    <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                        {filteredDoctors.map(
+                            doctor => {
+                                const doctorPracticeList =
+                                    practices.filter(
+                                        practice =>
+                                            practice.provider_id ===
+                                            doctor.id
+                                    )
+
+                                const isSelected =
+                                    selectedDoctorId ===
+                                    doctor.id
+
+                                return (
+                                    <Card
+                                        key={doctor.id}
+                                        className={
+                                            isSelected
+                                                ? 'ring-2 ring-primary'
+                                                : ''
+                                        }
+                                    >
+                                        <div className="flex items-start gap-3">
+                                            <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-secondary text-primary">
+                                                <UserRound className="size-5" />
+                                            </div>
+
+                                            <div className="min-w-0 flex-1">
+                                                <div className="flex flex-wrap items-start justify-between gap-2">
+                                                    <div>
+                                                        <h3 className="font-semibold">
+                                                            {doctor.full_name ??
+                                                                (hindi
+                                                                    ? 'डॉक्टर'
+                                                                    : 'Doctor')}
+                                                        </h3>
+
+                                                        <p className="mt-1 text-sm text-muted-foreground">
+                                                            {doctor.specialization ||
+                                                                (hindi
+                                                                    ? 'सामान्य डॉक्टर'
+                                                                    : 'General practice')}
+                                                        </p>
+                                                    </div>
+
+                                                    <Badge>
+                                                        {hindi
+                                                            ? 'मंजूर'
+                                                            : 'APPROVED'}
+                                                    </Badge>
+                                                </div>
+
+                                                {doctor.hpr_id && (
+                                                    <p className="mt-3 text-xs text-muted-foreground">
+                                                        HPR: {doctor.hpr_id}
+                                                    </p>
+                                                )}
+
+                                                {doctorPracticeList.length >
+                                                    0 && (
+                                                        <div className="mt-3 space-y-2">
+                                                            {doctorPracticeList.map(
+                                                                practice => (
+                                                                    <div
+                                                                        key={
+                                                                            practice.id
+                                                                        }
+                                                                        className="flex items-start gap-2 text-xs text-muted-foreground"
+                                                                    >
+                                                                        <MapPin className="mt-0.5 size-3.5 shrink-0" />
+
+                                                                        <span>
+                                                                            {
+                                                                                practice.practice_name
+                                                                            }
+
+                                                                            {practice.city
+                                                                                ? ` · ${practice.city}`
+                                                                                : ''}
+
+                                                                            {practice.state
+                                                                                ? `, ${practice.state}`
+                                                                                : ''}
+                                                                        </span>
+                                                                    </div>
+                                                                )
+                                                            )}
+                                                        </div>
+                                                    )}
+
+                                                {doctorPracticeList.length ===
+                                                    0 && (
+                                                        <p className="mt-3 text-xs text-amber-700">
+                                                            {hindi
+                                                                ? 'डॉक्टर ने अभी मिलने की जगह और समय नहीं जोड़ा है।'
+                                                                : 'This doctor has not added a practice location and schedule yet.'}
+                                                        </p>
+                                                    )}
+
+                                                <div className="mt-4 flex flex-wrap gap-2">
+                                                    <Button
+                                                        onClick={() =>
+                                                            chooseDoctor(
+                                                                doctor.id
+                                                            )
+                                                        }
+                                                        disabled={
+                                                            doctorPracticeList.length ===
+                                                            0
+                                                        }
+                                                    >
+                                                        {isSelected
+                                                            ? hindi
+                                                                ? 'चुना गया'
+                                                                : 'Selected'
+                                                            : hindi
+                                                                ? 'डॉक्टर चुनें'
+                                                                : 'Select doctor'}
+                                                    </Button>
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            listenDoctor(
+                                                                doctor
+                                                            )
+                                                        }
+                                                        className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-secondary"
+                                                    >
+                                                        <Volume2 className="size-4" />
+
+                                                        {hindi
+                                                            ? 'सुनें'
+                                                            : 'Listen'}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </Card>
+                                )
+                            }
+                        )}
+                    </div>
+                )}
+            </section>
+
+            {/* BOOKING */}
+            {selectedDoctor && (
+                <Card>
+                    {reschedulingAppt && (
+                        <div className="mb-4 rounded-xl border border-primary/30 bg-primary/5 p-4 text-xs space-y-1.5">
+                            <div className="flex justify-between items-center">
+                                <span className="font-bold text-primary text-sm flex items-center gap-1.5">
+                                    <CalendarCheck className="size-4" />
+                                    {hindi ? 'अपॉइंटमेंट पुनः निर्धारित (Reschedule) कर रहे हैं' : 'Rescheduling Appointment'}
+                                </span>
+                                <Button size="sm" variant="ghost" onClick={cancelReschedule}>
+                                    {hindi ? 'रद्द करें' : 'Cancel'}
+                                </Button>
+                            </div>
+                            <p className="text-muted-foreground leading-relaxed">
+                                {hindi
+                                    ? 'कृपया नीचे उपलब्ध असली स्लॉट चुनें। नया समय तय होने पर पिछला अपॉइंटमेंट अपने आप रद्द हो जाएगा।'
+                                    : 'Select a real available slot below. Your prior appointment will be released once the new slot is confirmed.'}
+                            </p>
+                        </div>
+                    )}
+
+                    <div className="flex items-start gap-3">
+                        <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-secondary text-primary">
+                            <CalendarCheck className="size-5" />
+                        </div>
+
+                        <div>
+                            <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+                                {hindi
+                                    ? 'समय लें'
+                                    : 'Book appointment'}
+                            </p>
+
+                            <h2 className="mt-1 text-lg font-semibold">
+                                {selectedDoctor.full_name}
+                            </h2>
+                        </div>
+                    </div>
+
+                    {/* PRACTICE */}
+                    <div className="mt-6">
+                        <label className="text-sm font-semibold">
+                            {hindi
+                                ? 'कहाँ मिलना है?'
+                                : 'Choose practice location'}
+                        </label>
+
+                        <div className="mt-3 grid gap-3 md:grid-cols-2">
+                            {doctorPractices.map(
+                                practice => (
+                                    <button
+                                        type="button"
+                                        key={practice.id}
+                                        onClick={() =>
+                                            choosePractice(
+                                                practice.id
+                                            )
+                                        }
+                                        className={`rounded-xl border p-4 text-left transition ${selectedPracticeId ===
+                                            practice.id
+                                            ? 'border-primary ring-1 ring-primary'
+                                            : 'border-border hover:bg-secondary/50'
+                                            }`}
+                                    >
+                                        <div className="flex items-start gap-3">
+                                            <Building2 className="mt-0.5 size-5 shrink-0 text-primary" />
+
+                                            <div>
+                                                <p className="font-semibold">
+                                                    {
+                                                        practice.practice_name
+                                                    }
+                                                </p>
+
+                                                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                                                    {[
+                                                        practice.address_line,
+                                                        practice.city,
+                                                        practice.state,
+                                                        practice.postal_code
+                                                    ]
+                                                        .filter(Boolean)
+                                                        .join(', ')}
+                                                </p>
+
+                                                <p className="mt-2 text-xs font-medium">
+                                                    {practice.consultation_mode ===
+                                                        'BOTH'
+                                                        ? hindi
+                                                            ? 'क्लिनिक और वीडियो दोनों'
+                                                            : 'Physical & teleconsult'
+                                                        : practice.consultation_mode ===
+                                                            'TELECONSULT'
+                                                            ? hindi
+                                                                ? 'वीडियो पर'
+                                                                : 'Teleconsult'
+                                                            : hindi
+                                                                ? 'क्लिनिक पर'
+                                                                : 'Physical'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </button>
+                                )
+                            )}
+                        </div>
+                    </div>
+
+                    {/* MODE */}
+                    {selectedPractice && (
+                        <div className="mt-6">
+                            <label className="text-sm font-semibold">
+                                {hindi
+                                    ? 'कैसे मिलना है?'
+                                    : 'Consultation mode'}
+                            </label>
+
+                            <div className="mt-3 flex flex-wrap gap-2">
+                                {(selectedPractice.consultation_mode ===
+                                    'PHYSICAL' ||
+                                    selectedPractice.consultation_mode ===
+                                    'BOTH') && (
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setMode(
+                                                    'PHYSICAL'
+                                                )
+                                            }
+                                            className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold ${mode === 'PHYSICAL'
+                                                ? 'border-primary bg-secondary'
+                                                : 'border-border'
+                                                }`}
+                                        >
+                                            <MapPin className="size-4" />
+
+                                            {hindi
+                                                ? 'क्लिनिक पर'
+                                                : 'Physical'}
+                                        </button>
+                                    )}
+
+                                {(selectedPractice.consultation_mode ===
+                                    'TELECONSULT' ||
+                                    selectedPractice.consultation_mode ===
+                                    'BOTH') && (
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setMode(
+                                                    'TELECONSULT'
+                                                )
+                                            }
+                                            className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold ${mode ===
+                                                'TELECONSULT'
+                                                ? 'border-primary bg-secondary'
+                                                : 'border-border'
+                                                }`}
+                                        >
+                                            <Video className="size-4" />
+
+                                            {hindi
+                                                ? 'वीडियो पर'
+                                                : 'Teleconsult'}
+                                        </button>
+                                    )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* SLOTS */}
+                    {selectedPracticeId && (
+                        <div className="mt-6">
+                            <label className="text-sm font-semibold">
+                                {hindi
+                                    ? 'मिलने का समय चुनें'
+                                    : 'Choose an available time'}
+                            </label>
+
+                            {slotsLoading ? <p role="status">{hindi?'समय की जानकारी आ रही है…':'Loading available times…'}</p> : slotError ? <p role="alert">{slotError}</p> : availableSlots.length ===
+                                0 ? (
+                                <div className="mt-3 rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
+                                    {hindi
+                                        ? 'अगले 14 दिनों में अभी कोई उपलब्ध समय नहीं मिला।'
+                                        : 'No available slot was found in the next 14 days.'}
+                                </div>
+                            ) : (
+                                <div className="mt-3 space-y-4">
+                                    {groupSlotsByDate(
+                                        availableSlots
+                                    ).map(group => (
+                                        <div
+                                            key={group.date}
+                                        >
+                                            <p className="text-sm font-semibold">
+                                                {group.date}
+                                            </p>
+
+                                            <div className="mt-2 flex flex-wrap gap-2">
+                                                {group.slots.map(
+                                                    slot => (
+                                                        <button
+                                                            type="button"
+                                                            key={
+                                                                slot.iso
+                                                            }
+                                                            onClick={() =>
+                                                                setSelectedSlot(
+                                                                    slot.iso
+                                                                )
+                                                            }
+                                                            className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm ${selectedSlot ===
+                                                                slot.iso
+                                                                ? 'border-primary bg-secondary font-semibold'
+                                                                : 'border-border hover:bg-secondary/50'
+                                                                }`}
+                                                        >
+                                                            <Clock3 className="size-4" />
+                                                            {
+                                                                slot.label
+                                                            }
+                                                        </button>
+                                                    )
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* REASON */}
+                    {selectedSlot && (
+                        <div className="mt-6 grid gap-4 md:grid-cols-2">
+                            <div>
+                                <label className="text-sm font-semibold">
+                                    {hindi
+                                        ? 'डॉक्टर से क्यों मिलना है?'
+                                        : 'Reason for visit'}
+                                </label>
+
+                                <input
+                                    value={reason}
+                                    onChange={event =>
+                                        setReason(
+                                            event.target.value
+                                        )
+                                    }
+                                    placeholder={
+                                        hindi
+                                            ? 'जैसे बुखार, पेट दर्द, पुरानी रिपोर्ट दिखानी है'
+                                            : 'e.g. fever, stomach pain, follow-up'
+                                    }
+                                    className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-sm font-semibold">
+                                    {hindi
+                                        ? 'डॉक्टर के लिए कोई और बात'
+                                        : 'Note for doctor'}
+                                </label>
+
+                                <input
+                                    value={patientNote}
+                                    onChange={event =>
+                                        setPatientNote(
+                                            event.target.value
+                                        )
+                                    }
+                                    placeholder={
+                                        hindi
+                                            ? 'जरूरी बात लिखें, अगर कोई हो'
+                                            : 'Optional additional note'
+                                    }
+                                    className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {errorMessage && (
+                        <p className="mt-4 text-sm font-medium text-red-600">
+                            {errorMessage}
+                        </p>
+                    )}
+
+                    {message && (
+                        <p className="mt-4 text-sm font-medium text-emerald-700">
+                            {message}
+                        </p>
+                    )}
+
+                    <Button
+                        className="mt-6"
+                        disabled={
+                            booking ||
+                            !selectedDoctorId ||
+                            !selectedPracticeId ||
+                            !selectedSlot
+                        }
+                        onClick={
+                            bookAppointment
+                        }
+                    >
+                        {booking
+                            ? hindi
+                                ? 'समय लिया जा रहा है...'
+                                : 'Booking...'
+                            : reschedulingAppt
+                                ? hindi
+                                    ? 'नया समय पक्का करें (Confirm Reschedule)'
+                                    : 'Confirm Reschedule'
+                                : hindi
+                                    ? 'डॉक्टर से मिलने का अनुरोध भेजें'
+                                    : 'Request appointment'}
+                    </Button>
+                </Card>
+            )}
+
+            {/* MY APPOINTMENTS */}
+            <section>
+                <h2 className="text-lg font-semibold">
+                    {hindi
+                        ? 'मेरे डॉक्टर से मिलने के समय'
+                        : 'My appointments'}
+                </h2>
+
+                <p className="mt-1 text-xs text-muted-foreground">
+                    {hindi
+                        ? 'आपके असली बुक किए गए समय यहाँ दिखेंगे।'
+                        : 'Your actual appointment records appear here.'}
+                </p>
+
+                <div className="mt-4 space-y-3">
+                    {appointments.length === 0 ? (
+                        <Card>
+                            <EmptyState
+                                text={
+                                    hindi
+                                        ? 'अभी आपने डॉक्टर से मिलने का कोई समय नहीं लिया है।'
+                                        : 'You have no appointments yet.'
+                                }
+                            />
+                        </Card>
+                    ) : (
+                        appointments.map(
+                            appointment => (
+                                <Card
+                                    key={
+                                        appointment.id
+                                    }
+                                >
+                                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                                        <div className="flex items-start gap-3">
+                                            <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-secondary text-primary">
+                                                <Stethoscope className="size-5" />
+                                            </div>
+
+                                            <div>
+                                                <p className="font-semibold">
+                                                    {appointment
+                                                        .provider_profiles
+                                                        ?.full_name ??
+                                                        (hindi
+                                                            ? 'डॉक्टर'
+                                                            : 'Doctor')}
+                                                </p>
+
+                                                {appointment
+                                                    .provider_profiles
+                                                    ?.specialization && (
+                                                        <p className="mt-1 text-xs text-muted-foreground">
+                                                            {
+                                                                appointment
+                                                                    .provider_profiles
+                                                                    ?.specialization
+                                                            }
+                                                        </p>
+                                                    )}
+
+                                                <p className="mt-2 text-sm font-medium">
+                                                    {formatDateTime(
+                                                        appointment.scheduled_at,
+                                                        hindi
+                                                    )}
+                                                </p>
+
+                                                {appointment
+                                                    .provider_practices
+                                                    ?.practice_name && (
+                                                        <div className="mt-2 flex items-start gap-2 text-xs text-muted-foreground">
+                                                            <MapPin className="mt-0.5 size-3.5 shrink-0" />
+
+                                                            <span>
+                                                                {
+                                                                    appointment
+                                                                        .provider_practices
+                                                                        ?.practice_name
+                                                                }
+
+                                                                {appointment
+                                                                    .provider_practices
+                                                                    ?.city
+                                                                    ? ` · ${appointment.provider_practices.city}`
+                                                                    : ''}
+                                                            </span>
+                                                        </div>
+                                                    )}
+
+                                                {appointment.reason && (
+                                                    <p className="mt-2 text-xs text-muted-foreground">
+                                                        {hindi
+                                                            ? 'कारण'
+                                                            : 'Reason'}
+                                                        :{' '}
+                                                        {
+                                                            appointment.reason
+                                                        }
+                                                    </p>
+                                                )}
+
+                                                <p className="mt-2 text-xs text-muted-foreground">
+                                                    {appointment.mode ===
+                                                        'TELECONSULT'
+                                                        ? hindi
+                                                            ? 'वीडियो पर'
+                                                            : 'Teleconsultation'
+                                                        : hindi
+                                                            ? 'क्लिनिक पर'
+                                                            : 'Physical consultation'}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <StatusBadge status={appointment.status} />
+
+                                            {(appointment.status === 'REQUESTED' || appointment.status === 'CONFIRMED') && (
+                                                <>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => startReschedule(appointment)}
+                                                        className="text-xs"
+                                                    >
+                                                        {hindi ? 'समय बदलें' : 'Reschedule'}
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="danger"
+                                                        disabled={cancellingId === appointment.id}
+                                                        onClick={() => void cancelAppointment(appointment.id)}
+                                                        className="text-xs"
+                                                    >
+                                                        {cancellingId === appointment.id
+                                                            ? (hindi ? 'रद्द हो रहा है…' : 'Cancelling…')
+                                                            : (hindi ? 'रद्द करें' : 'Cancel')}
+                                                    </Button>
+                                                </>
+                                            )}
+
+                                            {appointment.mode === 'TELECONSULT' && appointment.status !== 'CANCELLED' && (
+                                                <Button
+                                                    size="sm"
+                                                    onClick={() => setTeleconsultAppt(appointment)}
+                                                    className="inline-flex items-center gap-1.5"
+                                                >
+                                                    <Video className="size-3.5" />
+                                                    <span>{hindi ? 'कंसल्टेशन से जुड़ें' : 'Join Consultation'}</span>
+                                                </Button>
+                                            )}
+
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    listenAppointment(
+                                                        appointment
+                                                    )
+                                                }
+                                                className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-secondary"
+                                            >
+                                                <Volume2 className="size-4" />
+
+                                                {hindi
+                                                    ? 'सुनें'
+                                                    : 'Listen'}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Provider / Patient cancelled notice */}
+                                    {appointment.status === 'CANCELLED' && (
+                                        <div className="mt-3 pt-3 border-t border-border flex flex-wrap items-center justify-between gap-2 text-xs">
+                                            <div className="flex items-center gap-1.5 text-amber-700">
+                                                <AlertTriangle className="size-3.5 shrink-0" />
+                                                <span>
+                                                    {hindi
+                                                        ? 'अपॉइंटमेंट रद्द हो चुका है। नया समय लेने के लिए उपलब्ध स्लॉट चुनें।'
+                                                        : 'Appointment cancelled. Rebooking requires selecting a fresh available slot.'}
+                                                </span>
+                                            </div>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => {
+                                                    setSelectedDoctorId(appointment.doctor_provider_id)
+                                                    if (appointment.practice_id) setSelectedPracticeId(appointment.practice_id)
+                                                    window.scrollTo({ top: 0, behavior: 'smooth' })
+                                                }}
+                                            >
+                                                {hindi ? 'नया स्लॉट चुनें' : 'Rebook New Slot'}
+                                            </Button>
+                                        </div>
+                                    )}
+                                </Card>
+                            )
+                        )
+                    )}
+                </div>
+            </section>
+        </div>
+    )
+}
+
+/* ============================================================
+   DOCTOR
+============================================================ */
+
+function DoctorAppointments() {
+    const { profile } = useAuth()
+    const { language } = useLanguage()
+
+    const hindi =
+        language === 'Hindi'
+
+    const [provider, setProvider] =
+        useState<any>(null)
+
+    const [rows, setRows] =
+        useState<any[]>([])
+
+    const [loading, setLoading] =
+        useState(true)
+
+    useEffect(() => {
+        load()
+    }, [profile?.id])
+
+    async function load() {
+        if (!profile?.id) return
+
+        setLoading(true)
+
+        const {
+            data: providerData,
+            error: providerError
+        } = await supabase
+            .from('provider_profiles')
+            .select(
+                'id, full_name, verification_status'
+            )
+            .eq(
+                'user_id',
+                profile.id
+            )
+            .maybeSingle()
+
+        if (providerError) {
+            console.error(
+                providerError
+            )
+        }
+
+        setProvider(
+            providerData
+        )
+
+        if (!providerData) {
+            setLoading(false)
+            return
+        }
+
+        const {
+            data,
+            error
+        } = await supabase
+            .from('appointments')
+            .select(
+                `
+        *,
+        patient_profiles(
+          patient_code,
+          full_name
+        ),
+        provider_practices(
+          practice_name,
+          address_line,
+          city,
+          state
+        )
+        `
+            )
+            .eq(
+                'doctor_provider_id',
+                providerData.id
+            )
+            .order(
+                'scheduled_at',
+                {
+                    ascending: true
+                }
+            )
+
+        if (error) {
+            console.error(
+                'Doctor appointments error:',
+                error
+            )
+        }
+
+        setRows(
+            data ?? []
+        )
+
+        setLoading(false)
+    }
+
+    async function changeStatus(
+        appointmentId: string,
+        status: string
+    ) {
+        const {
+            error
+        } = await supabase.rpc('a2_appointment_transition',{p_appointment:appointmentId,p_status:status})
+
+        if (error) {
+            alert(
+                error.message
+            )
+
+            return
+        }
+
+        await load()
+    }
+    function startConsultation(
+        appointmentId: string
+    ) {
+        sessionStorage.setItem(
+            'swasthyasetu-active-appointment',
+            appointmentId
+        )
+
+        navigate('/encounter')
+    }
+    function listenPage() {
+        if (hindi) {
+            speakText(
+                `यह डॉक्टर का मिलने के समय वाला पेज है।
+        आपके पास ${rows.length} मरीजों के समय दर्ज हैं।
+        नए अनुरोध को देखकर आप उसे मंजूर या मना कर सकते हैं।`,
+                'Hindi'
+            )
+
+            return
+        }
+
+        speakText(
+            `This is your appointments workspace.
+      You currently have ${rows.length} appointment records.
+      Review new patient requests and confirm or reject them.`,
+            'English'
+        )
+    }
+
+    if (loading) {
+        return (
+            <div className="py-16 text-center text-sm text-muted-foreground">
+                {hindi
+                    ? 'जानकारी लोड हो रही है...'
+                    : 'Loading appointments...'}
+            </div>
+        )
+    }
+
+    return (
+        <div className="space-y-6">
+            <section className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                    <p className="text-sm font-medium text-primary">
+                        {hindi
+                            ? 'डॉक्टर'
+                            : 'Doctor'}
+                    </p>
+
+                    <h1 className="mt-1 text-2xl font-bold md:text-3xl">
+                        {hindi
+                            ? 'मरीजों से मिलने का समय'
+                            : 'Appointments'}
+                    </h1>
+
+                    <p className="mt-2 text-sm text-muted-foreground">
+                        {hindi
+                            ? 'मरीजों के असली बुकिंग अनुरोध यहाँ दिखाई देंगे।'
+                            : 'Real appointment requests from patients appear here.'}
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    onClick={
+                        listenPage
+                    }
+                    className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold hover:bg-secondary"
+                >
+                    <Volume2 className="size-4" />
+
+                    {hindi
+                        ? 'यह पेज सुनें'
+                        : 'Listen to this page'}
+                </button>
+            </section>
+
+            {provider?.verification_status !==
+                'APPROVED' ? (
+                <Card>
+                    <EmptyState
+                        text={
+                            hindi
+                                ? 'डॉक्टर का सत्यापन अभी पूरा नहीं हुआ है। मिलने के समय से जुड़े काम अभी बंद हैं।'
+                                : 'Provider verification is pending. Appointment actions are locked.'
+                        }
+                    />
+                </Card>
+            ) : rows.length === 0 ? (
+                <Card>
+                    <EmptyState
+                        text={
+                            hindi
+                                ? 'अभी किसी मरीज ने मिलने का समय नहीं माँगा है।'
+                                : 'No appointment requests yet.'
+                        }
+                    />
+                </Card>
+            ) : (
+                <div className="space-y-3">
+                    {rows.map(
+                        appointment => (
+                            <Card
+                                key={
+                                    appointment.id
+                                }
+                            >
+                                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <UserRound className="size-4 text-primary" />
+
+                                            <p className="font-semibold">
+                                                {hindi
+                                                    ? 'मरीज'
+                                                    : 'Patient'}
+                                            </p>
+                                        </div>
+
+                                         <p className="mt-2 text-sm font-semibold text-foreground">
+                                             {appointment.patient_profiles?.full_name ?? (appointment.patient_profiles?.patient_code ?? '—')}
+                                         </p>
+                                         {appointment.patient_profiles?.patient_code && appointment.patient_profiles?.full_name && (
+                                             <p className="text-xs text-muted-foreground font-mono">
+                                                 {appointment.patient_profiles.patient_code}
+                                             </p>
+                                         )}
+
+                                        <p className="mt-3 font-medium">
+                                            {formatDateTime(
+                                                appointment.scheduled_at,
+                                                hindi
+                                            )}
+                                        </p>
+
+                                        {appointment
+                                            .provider_practices
+                                            ?.practice_name && (
+                                                <p className="mt-2 text-xs text-muted-foreground">
+                                                    {
+                                                        appointment
+                                                            .provider_practices
+                                                            ?.practice_name
+                                                    }
+                                                </p>
+                                            )}
+
+                                        {appointment.reason && (
+                                            <p className="mt-3 text-sm">
+                                                <span className="font-semibold">
+                                                    {hindi
+                                                        ? 'मिलने का कारण'
+                                                        : 'Reason'}
+                                                    :{' '}
+                                                </span>
+
+                                                {
+                                                    appointment.reason
+                                                }
+                                            </p>
+                                        )}
+
+                                        {appointment.patient_note && (
+                                            <p className="mt-2 text-sm">
+                                                <span className="font-semibold">
+                                                    {hindi
+                                                        ? 'मरीज की बात'
+                                                        : 'Patient note'}
+                                                    :{' '}
+                                                </span>
+
+                                                {
+                                                    appointment.patient_note
+                                                }
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    <div className="flex flex-wrap gap-2">
+                                        <Badge>
+                                            {
+                                                appointment.status
+                                            }
+                                        </Badge>
+
+                                        {appointment.status ===
+                                            'REQUESTED' && (
+                                                <>
+                                                    <Button
+                                                        onClick={() =>
+                                                            changeStatus(
+                                                                appointment.id,
+                                                                'CONFIRMED'
+                                                            )
+                                                        }
+                                                    >
+                                                        {hindi
+                                                            ? 'मंजूर करें'
+                                                            : 'Confirm'}
+                                                    </Button>
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            changeStatus(
+                                                                appointment.id,
+                                                                'CANCELLED'
+                                                            )
+                                                        }
+                                                        className="rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-secondary"
+                                                    >
+                                                        {hindi
+                                                            ? 'मना करें'
+                                                            : 'Reject'}
+                                                    </button>
+                                                </>
+                                            )}{appointment.status === 'CONFIRMED' && (
+                                                <Button
+                                                    onClick={() =>
+                                                        startConsultation(
+                                                            appointment.id
+                                                        )
+                                                    }
+                                                >
+                                                    <Stethoscope className="mr-2 size-4" />
+
+                                                    {hindi
+                                                        ? 'Consultation शुरू करें'
+                                                        : 'Start Consultation'}
+                                                </Button>
+                                            )}
+                                    </div>
+                                </div>
+                            </Card>
+                        )
+                    )}
+                </div>
+            )}
+        </div>
+    )
+}
+
+/* ============================================================
+   HELPERS
+============================================================ */
+
+function groupSlotsByDate(
+    slots: Slot[]
+) {
+    const map =
+        new Map<
+            string,
+            Slot[]
+        >()
+
+    for (
+        const slot of slots
+    ) {
+        const existing =
+            map.get(
+                slot.dateLabel
+            ) ?? []
+
+        existing.push(
+            slot
+        )
+
+        map.set(
+            slot.dateLabel,
+            existing
+        )
+    }
+
+    return Array.from(
+        map.entries()
+    ).map(
+        ([date, groupedSlots]) => ({
+            date,
+            slots: groupedSlots
+        })
+    )
+}
+
+function formatDateTime(
+    value: string,
+    hindi: boolean
+) {
+    return new Date(
+        value
+    ).toLocaleString(
+        hindi
+            ? 'hi-IN'
+            : 'en-IN',
+        {
+            weekday: 'short',
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit'
+        }
+    )
+}

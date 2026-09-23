@@ -1,0 +1,2711 @@
+CONTINUE SWASTHYASETU FROM THE EXISTING SAVED CHECKPOINT.
+DO NOT RESTART, REBUILD FROM SCRATCH, RESET, DISCARD, OR OVERWRITE COMPLETED WORK.
+
+==================================================
+0. EXACT WORKSPACE / SOURCE OF TRUTH
+==================================================
+
+Current Codex workspace:
+
+C:\Users\Yash\Documents\Codex\2026-09-18\files-pasted-by-the-user-you\work\swasthyasetu-clean-core
+
+Parent work:
+C:\Users\Yash\Documents\Codex\2026-09-18\files-pasted-by-the-user-you\work
+
+Exports:
+C:\Users\Yash\Documents\Codex\2026-09-18\files-pasted-by-the-user-you\outputs
+
+Original hardened/master request:
+C:\Users\Yash\.codex\attachments\9fbc7abb-8650-4c54-a9fd-d43e2e301afa\Pasted text.txt
+
+Live schema contract supplied previously:
+C:\Users\Yash\Downloads\Supabase Snippet Untitled query.csv
+
+IMPORTANT:
+This Codex workspace is an extracted COPY.
+
+DO NOT modify:
+D:\swasthyasetu-clean-core
+
+DO NOT modify live Supabase.
+
+DO NOT apply migrations to production/live Supabase.
+
+Read FIRST:
+- CONTINUE.md
+- APPLY-BACK.md if present
+- CHANGES.json if present
+- docs/CARE-CHECKPOINT.md
+- docs/SCHEMA-RECONCILIATION.md
+- migrations 001–006
+- current tests
+- current src/
+- existing AI/snapshot implementation
+- original hardened master request above
+
+The existing hardened SwasthyaSetu concept remains the ultimate product source of truth.
+
+Do not silently drop a requirement merely because it is not repeated later in this prompt.
+
+==================================================
+1. PRESERVE CURRENT WORK
+==================================================
+
+Existing checkpoint already contains important working foundations.
+
+Preserve and improve them, do not rewrite them unnecessarily:
+
+- P0 diagnostic workflows
+- direct/rural diagnostic routing
+- collection centre vs processing lab distinction
+- specimen custody
+- CSV/JSON raw payload preservation
+- lab verification
+- private report publication
+- doctor report review
+- CareGap review closure
+- explicit patient location permission
+- manual location fallback
+- Hindi/English PDF support
+- appointment/encounter state fixes
+- authentication loading fixes
+- atomic consultation completion
+- prescriptions
+- diagnostic orders
+- care events/gaps
+- pharmacy assignment
+- inventory-backed dispensing
+- partial fulfilment
+- stock receipt idempotency
+- worker follow-ups
+- doctor-verified follow-up closure
+- care history pagination
+- existing RLS/security hardening
+- current Snapshot provider boundary
+- existing automated tests
+
+Current saved checkpoint previously passed:
+- production build
+- 61 automated tests
+
+Never reduce security or working functionality just to make implementation easier.
+
+New schema work should start AFTER migration 006.
+
+Migrations must be:
+- non-destructive where possible
+- auditable
+- tested
+- ordered
+- migration-driven
+- rollback-conscious
+
+==================================================
+2. PRODUCT DEFINITION
+==================================================
+
+SwasthyaSetu is NOT a CRUD dashboard.
+
+It is an:
+
+AI-FIRST
+CONSENT-AWARE
+INTEROPERABLE
+CLOSED-LOOP
+HEALTHCARE COORDINATION PLATFORM
+
+connecting:
+
+PATIENT
+DOCTOR
+HOSPITAL / HIS / HMIS
+LAB / LIS / RIS / PACS
+PHARMACY ERP / POS
+FIELD HEALTH WORKER
+ADMIN / GOVERNANCE
+EXTERNAL HEALTHCARE SYSTEMS
+REAL MODEL-BACKED AI
+
+Core philosophy:
+
+KNOW THE PATHWAY.
+DETECT THE GAP.
+PRIORITIZE THE RISK.
+RESOLVE THE NEXT STEP.
+VERIFY COMPLETION.
+
+The platform should continuously understand:
+
+- Who is using the system?
+- Which role are they operating as?
+- Which patient/current workflow is selected?
+- What data are they permitted to access?
+- What consent exists?
+- What is authoritative source data?
+- What happened already?
+- What is pending?
+- Where did the care journey stop?
+- Why did it stop?
+- What operational action should happen next?
+- Was the action really completed?
+
+==================================================
+3. ABSOLUTE PRIORITY — REAL AI
+==================================================
+
+AI is one of the MAIN DIFFERENTIATORS of SwasthyaSetu.
+
+Do NOT build fake AI.
+
+AI does NOT mean:
+- if/else labelled AI
+- hardcoded suggestions
+- predefined demo summaries
+- keyword matching pretending to be AI
+- fake "AI powered" cards
+- canned responses
+- fixed patients
+- fixed demo histories
+
+AI means an ACTUAL MODEL-BACKED SYSTEM operating dynamically on current authorized data.
+
+Implement a CENTRAL AI ORCHESTRATION LAYER.
+
+Architecture:
+
+User
+↓
+Authentication
+↓
+Role
+↓
+Current page/workflow
+↓
+Selected patient/entity
+↓
+RBAC
+↓
+Consent
+↓
+Authorized tool/data retrieval
+↓
+Structured context
+↓
+Actual AI model
+↓
+Grounded answer / structured output / suggestion
+↓
+Sources + dates + provenance + uncertainty
+↓
+Permitted tool/action request
+
+AI provider must be replaceable.
+
+Do not tightly couple the application to one AI vendor.
+
+Create:
+- AI provider interface
+- model gateway
+- context builder
+- structured output validation
+- authorization-aware tool layer
+- source/provenance references
+- prompt/version handling
+- observability/evaluation hooks
+
+If real AI credentials are unavailable:
+
+DO NOT FAKE AI.
+
+Instead:
+- finish provider integration
+- document required environment variables
+- make unconfigured state truthful
+- add mocked contract tests
+- add authorization tests
+- return "AI unavailable / model not configured"
+- never fall back to fake clinical answers
+
+==================================================
+4. AI CAPABILITIES BY ROLE
+==================================================
+
+PATIENT AI:
+- explain medical records in simple language
+- answer questions from actual authorized history
+- compare past reports
+- explain pending steps
+- explain prescriptions/instructions
+- explain appointment/test/follow-up information
+- simple Hindi support
+- voice-capable explanation
+- identify unresolved care journey steps
+
+Examples:
+"Meri pichhli thyroid reports compare karo."
+"Mujhe ab kya karna hai?"
+"Doctor ne last time kaunsi medicine di thi?"
+
+DOCTOR AI:
+- summarize authorized longitudinal history
+- surface relevant previous diagnoses
+- previous prescriptions
+- current/recent medicines
+- allergies / unknown state
+- important labs
+- trends
+- unresolved CareGaps
+- pending results
+- follow-ups
+- important clinical context before consultation
+- support free-form record questions
+- surface guideline/formulary/safety context when grounded in approved sources
+
+Example:
+"Last six months me important clinical changes batao."
+
+HOSPITAL AI:
+- queue bottlenecks
+- OPD load
+- appointment issues
+- bed/capacity issues
+- delayed diagnostics
+- unreviewed reports
+- discharge bottlenecks
+- workload patterns
+- operational next steps
+- staffing/capacity alerts where authoritative data exists
+
+LAB AI:
+- pending verification
+- workload prioritization
+- missing/inconsistent data
+- abnormal/critical workflows
+- report workflow assistance
+
+PHARMACY AI:
+- stock shortages
+- near-expiry products
+- partial fulfilments
+- inventory patterns
+- prescription matching assistance
+- operational demand insights
+
+WORKER AI:
+- prioritize home visits
+- summarize pending patient tasks
+- explain tasks in simple Hindi
+- summarize previous attempts
+- suggest operational escalation
+
+CARE COORDINATION AI:
+- understand the care journey
+- identify where it is blocked
+- explain why
+- suggest permissible next operational actions
+
+==================================================
+5. AI CLINICAL SAFETY BOUNDARY
+==================================================
+
+AI MAY:
+- retrieve
+- summarize
+- compare
+- explain
+- organize
+- surface relevant records
+- highlight trends
+- identify missing information
+- provide evidence-grounded decision support
+- surface validated drug interaction/allergy/formulary information
+- suggest operational next steps
+
+AI MUST NOT independently:
+- sign prescriptions
+- prescribe medicines
+- change doses
+- substitute prescribed medication
+- make final diagnosis
+- modify treatment
+- create emergency clinical decisions
+- overwrite source-of-truth clinical records
+
+Final clinical authority remains with authorized clinicians.
+
+AI output must distinguish:
+- sourced facts
+- derived summaries
+- suggestions
+- uncertainty
+- missing information
+
+Never fabricate clinical values.
+
+If allergy data is absent:
+"No allergy documented"
+
+NOT:
+"No allergy"
+
+==================================================
+6. SWASTHYASNAPSHOT
+==================================================
+
+Complete the current Snapshot boundary into a real dynamic grounded system.
+
+For ANY patient, use actual authorized current records.
+
+Snapshot should derive from:
+
+- encounters
+- diagnoses/problems
+- prescriptions
+- medications
+- pharmacy dispense events
+- diagnostic orders
+- verified results
+- imaging reports
+- procedures
+- report reviews
+- allergies
+- vitals
+- follow-ups
+- CareGaps
+- worker outcomes
+- uploaded medical records
+- external imported records
+- hospital events
+- relevant programme/insurance context
+
+Snapshot should provide:
+
+- important past/current conditions
+- relevant recent encounters
+- active/recent medicines
+- documented allergy state
+- important labs
+- dated trends
+- pending tests
+- reports awaiting review
+- pending follow-up
+- unresolved CareGaps
+- current-care context
+- source/date/provenance
+
+Do NOT fine-tune/store patient-specific current histories inside model training.
+
+Retrieve runtime patient context.
+
+==================================================
+7. DOCUMENT AI / OCR / MEDICAL DOCUMENT INGESTION
+==================================================
+
+Uploaded medical files must not remain disconnected blobs.
+
+Pipeline:
+
+Upload
+↓
+Immutable original
+↓
+Document classification
+↓
+OCR / document understanding
+↓
+Structured extraction draft
+↓
+confidence
+↓
+provenance
+↓
+human verification when necessary
+↓
+structured medical record
+↓
+longitudinal timeline
+↓
+CareGraph / CareGap / AI context
+
+Support architecture/workflows for:
+
+- prescription
+- pathology report
+- imaging report
+- discharge summary
+- consultation note
+- vaccination/programme document
+- insurance document
+- generic medical document
+
+Store:
+- original source
+- uploader
+- source type
+- source timestamp
+- extraction status
+- confidence
+- verification state
+- extracted values
+- provenance
+
+AI extraction ≠ clinical verification.
+
+==================================================
+8. CONSENT — CORE REQUIREMENT
+==================================================
+
+Implement a proper consent and access architecture.
+
+Doctor/Hospital/Lab/Pharmacy/Worker must NOT automatically receive full patient history.
+
+Consent must support:
+
+- patient
+- requester
+- requester role
+- purpose
+- scope
+- resource categories
+- date range where relevant
+- validity start
+- expiry
+- granted
+- denied
+- revoked
+- expired
+- audit trail
+
+Patient Consent Center:
+
+- who requested access
+- what they requested
+- why
+- what data categories
+- duration
+- grant
+- deny
+- revoke
+- access history
+
+Doctor access must depend on:
+- relationship/context
+- role
+- valid consent where required
+- scope
+- purpose
+- expiry
+
+Pharmacy:
+minimum prescription/fulfilment data only.
+
+Lab:
+assigned diagnostic order + necessary context only.
+
+Worker:
+assigned/assisted-care minimum information only.
+
+All sensitive access:
+auditable.
+
+==================================================
+9. CONSENT REVOCATION PROPAGATION
+==================================================
+
+Consent revocation must propagate through:
+
+- UI authorization
+- API authorization
+- AI context retrieval
+- cache
+- offline worker data
+- connected integrations where technically supported
+
+Do not keep serving previously authorized data merely because it remains cached.
+
+==================================================
+10. PATIENT ACCESS PRINCIPLE
+==================================================
+
+Do not make ABHA or SwasthyaSetu enrollment a prerequisite for receiving treatment.
+
+Principle:
+
+SYSTEM-LEVEL PARTICIPATION.
+PATIENT-LEVEL CONTROL.
+
+Public/participating facilities may operationally use SwasthyaSetu.
+
+But optional cross-provider patient data sharing remains consent controlled.
+
+==================================================
+11. LONGITUDINAL HEALTH RECORD
+==================================================
+
+Build a real longitudinal patient record/timeline.
+
+Potential sources:
+
+- SwasthyaSetu doctor encounters
+- hospital encounters
+- ABHA/ABDM linked records
+- patient uploads
+- diagnostic reports
+- imaging
+- prescriptions
+- dispensing
+- worker visits
+- insurance/programmes
+- emergency
+- external HIS/LIS systems
+
+Every event/resource should preserve:
+
+- source system
+- source record ID
+- author/provider
+- facility
+- event date
+- creation/import date
+- verification state
+- provenance
+- original representation
+- normalized representation where applicable
+- freshness / last verified where meaningful
+
+Old information must not silently become current.
+
+==================================================
+12. MEDICATION RECONCILIATION
+==================================================
+
+Preserve distinction between:
+
+PRESCRIBED
+DISPENSED
+PATIENT_REPORTED
+CLINICIAN_CONFIRMED
+
+Dispensed does NOT mean the patient is definitely taking it.
+
+==================================================
+13. MINIMUM-COPY / FEDERATED DATA
+==================================================
+
+Do not create one giant unnecessary central copy of all healthcare data.
+
+Where feasible:
+
+- authoritative data stays at source
+- SwasthyaSetu links/retrieves authorized data
+- copy/cache only required information
+- preserve authoritative source
+- preserve provenance
+- distinguish care-coordination state from clinical source-of-truth data
+
+==================================================
+14. SEMANTIC NORMALIZATION
+==================================================
+
+When integrating external systems:
+
+Preserve:
+- original value
+- original terminology/code
+- original unit
+- source system
+- normalized representation
+- mapping provenance
+
+Never silently replace original clinical meaning.
+
+==================================================
+15. ROLE-SPECIFIC SOFTWARE
+==================================================
+
+DO NOT use the same dashboard for all roles.
+
+PATIENT
+= consumer healthcare application
+
+DOCTOR
+= clinical workstation
+
+HOSPITAL
+= HIS/HMIS operational ERP
+
+LAB
+= LIS/RIS/PACS diagnostic workstation
+
+PHARMACY
+= Pharmacy ERP/POS
+
+WORKER
+= field-care / assisted-access application
+
+ADMIN
+= governance/verification/security/integration console
+
+Same visual design language is acceptable.
+
+Same workflow/navigation is NOT.
+
+==================================================
+16. PATIENT APPLICATION
+==================================================
+
+Home should prioritize:
+
+1. NextStep / "Ab aapko kya karna hai"
+2. current care status
+3. upcoming appointment
+4. pending diagnostic
+5. pending doctor review
+6. current medicines
+7. follow-up
+8. CareGap alert
+9. AI assistant
+
+Patient areas:
+
+Home
+Doctors
+Hospitals / Facilities
+Appointments
+Prescriptions
+My Medicines
+Buy / Refill Medicines
+Diagnostics
+Health Records
+Care Timeline
+SwasthyaSnapshot
+Consent & Access
+Insurance / Schemes
+Notifications
+Profile
+AI Assistant
+
+PRESCRIPTION ≠ MEDICINES.
+
+Prescription:
+doctor-generated clinical order/history.
+
+My Medicines:
+active/recent medication-management experience.
+
+==================================================
+17. DOCTOR DISCOVERY
+==================================================
+
+Architecture:
+
+PERSON ≠ PLACE ≠ AVAILABILITY
+
+Doctor identity:
+- HPR
+- registration
+- specialization
+- professional verification
+
+Practice:
+- hospital
+- clinic
+- private practice
+- actual address
+- facility coordinates
+
+Schedule:
+- per practice location
+- day/time
+- slot duration
+- override
+- leave
+- availability
+
+DO NOT use doctor's current GPS.
+
+Patient may explicitly choose:
+"Use My Location"
+
+Use patient location to find nearby PRACTICES/FACILITIES.
+
+Also support:
+- doctor name
+- HPR
+- specialization
+- hospital
+- clinic
+- area
+- city
+- district
+- state
+- PIN
+
+==================================================
+18. APPOINTMENTS
+==================================================
+
+Replace unsafe direct appointment mutations with validated server workflows.
+
+Appointment booking must validate:
+
+- doctor
+- practice
+- facility
+- department
+- schedule
+- slot
+- timezone
+- availability
+- consultation type
+- consultation fee
+- allowed state transition
+
+Support:
+
+- online booking
+- walk-in
+- reschedule
+- cancel
+- confirmation
+- check-in
+- token
+- queue
+- no-show
+- start consultation
+- complete consultation
+
+Prevent:
+- double booking
+- cancel/start races
+- invalid practice booking
+- invalid doctor association
+- patient data leakage from availability queries
+
+Availability should be server generated and bounded.
+
+==================================================
+19. DOCTOR CLINICAL WORKSTATION
+==================================================
+
+Doctor dashboard:
+
+- Today's Appointments
+- OPD Queue
+- Pending Consultations
+- Reports Pending Review
+- Critical Results
+- Follow-ups
+- CareGaps
+- Tasks
+- AI Copilot
+
+Consultation must be CENTRAL WORKSPACE.
+
+Patient header:
+- patient identity
+- ABHA if linked
+- demographics
+- consent state
+- major alerts
+- allergy state
+- active/recent medicines
+
+Workspace:
+
+- SwasthyaSnapshot
+- Care Timeline
+- Health Records
+- Previous Prescriptions
+- Diagnostics
+- Vitals
+- Problems/Diagnoses
+- Notes
+- Test Orders
+- Prescription
+- Referral
+- Follow-up
+- AI Copilot
+
+Historical context should be visible inside consultation.
+
+Separate history pages may remain for deeper review.
+
+All history access must follow permissions/consent.
+
+==================================================
+20. HOSPITAL — HIS/HMIS
+==================================================
+
+Hospital role must become a serious HIS/HMIS-style system.
+
+NOT just facility profile.
+
+Create coherent functional prototype modules:
+
+HOSPITAL COMMAND CENTRE:
+- today's OPD
+- appointments
+- queues
+- pending diagnostics
+- unreviewed reports
+- pending discharge
+- beds
+- operational alerts
+- AI operations copilot
+
+FACILITY MANAGEMENT:
+- facility profile
+- HFR/demo identity
+- branches
+- departments
+- specialties
+- services
+- capabilities
+- addresses
+- map location
+
+DOCTOR / STAFF:
+- doctor association
+- HPR
+- departments
+- schedules
+- duty roster
+- leaves/overrides
+- consultation fees
+- staff roles
+- active/inactive association
+- RBAC
+
+RECEPTION:
+- patient registration
+- ABHA/UHID/MRN mapping
+- walk-ins
+- online appointments
+- check-in
+- queue
+- token
+
+OPD:
+- queues
+- doctors
+- encounter status
+- consultation state
+
+IPD / ADT:
+- admission
+- ward
+- room
+- bed
+- transfer
+- discharge
+
+BED MANAGEMENT:
+- wards
+- rooms
+- beds
+- occupancy
+- reservation
+- cleaning/turnaround
+- last updated
+
+EMERGENCY:
+- intake
+- triage state
+- emergency capacity
+- referral/transfer
+
+CLINICAL OPERATIONS:
+- encounters
+- diagnostics
+- prescription
+- referrals
+- follow-up
+
+DIAGNOSTICS:
+- internal lab
+- external lab
+- imaging
+- procedure diagnostics
+- status
+- report review
+
+PHARMACY:
+- internal/associated pharmacy workflows
+
+BILLING:
+- charges
+- invoices
+- payment
+- refunds where appropriate
+
+INSURANCE / TPA:
+- patient coverage
+- preauthorization architecture
+- claim state
+
+OT / SURGERY:
+- procedure/surgery scheduling architecture appropriate to prototype
+
+DISCHARGE:
+- summary
+- medicines
+- instructions
+- follow-up
+- pending actions
+
+INVENTORY / STORE:
+- stock/equipment architecture
+
+AMBULANCE / REFERRALS:
+- referral and transfer coordination
+
+AUDIT / MIS:
+- operational reports
+- role activity
+- events
+
+INTEGRATIONS:
+- HIS
+- FHIR
+- HL7
+- LIS
+- RIS
+- PACS
+- pharmacy
+- billing
+- insurer
+
+Do NOT attempt a full Epic/Cerner-sized product.
+
+Build the highest-value functional prototype modules while making schema/services extensible.
+
+Small hospital:
+can use SwasthyaSetu built-in HMIS.
+
+Large hospital:
+can keep existing HIS and integrate through adapters.
+
+==================================================
+21. PATIENT ↔ HOSPITAL BOOKING
+==================================================
+
+Patient should be able to:
+
+search hospital
+→ view departments/services
+→ select doctor
+→ see practice
+→ see consultation fee
+→ see real available slots
+→ book appointment
+→ payment/status
+→ hospital receives appointment
+→ reception/check-in
+→ OPD queue
+→ consultation
+
+No fake fee.
+No fake slot.
+No fake availability.
+
+==================================================
+22. FACILITY DISCOVERY
+==================================================
+
+Patient facility discovery should include:
+
+- hospital
+- clinic
+- PHC
+- CHC
+- HWC
+- diagnostic lab
+- collection centre
+
+Search/filter:
+- name
+- current location with permission
+- area
+- PIN
+- city
+- district
+- state
+- specialty
+- service
+- diagnostic capability
+
+Unknown values remain UNKNOWN.
+
+Do not fabricate:
+- rating
+- wait time
+- price
+- live bed availability
+
+==================================================
+23. DIAGNOSTICS
+==================================================
+
+Preserve working P0 diagnostic foundation.
+
+Expand diagnostics into proper categories.
+
+PATHOLOGY:
+- hematology
+- biochemistry
+- microbiology
+- serology
+- immunology
+- molecular
+- histopathology
+- etc.
+
+IMAGING:
+- X-ray
+- CT
+- MRI
+- ultrasound
+- mammography
+- etc.
+
+CARDIAC / PROCEDURES:
+- ECG
+- Echo
+- Holter
+- other procedure-based diagnostics
+
+Do NOT force CT/X-ray/ECG into SAMPLE_COLLECTED workflow.
+
+Example workflows:
+
+PATHOLOGY:
+ORDERED
+→ COLLECTION_PENDING
+→ SAMPLE_COLLECTED
+→ IN_TRANSIT
+→ RECEIVED_AT_LAB
+→ PROCESSING
+→ VERIFIED
+→ PUBLISHED
+→ DOCTOR_REVIEWED
+
+IMAGING:
+ORDERED
+→ SCHEDULED
+→ PATIENT_ARRIVED
+→ STUDY_PERFORMED
+→ REPORT_DRAFTED
+→ VERIFIED
+→ PUBLISHED
+→ DOCTOR_REVIEWED
+
+PROCEDURE:
+ORDERED
+→ SCHEDULED
+→ PERFORMED
+→ RESULT_RECORDED
+→ VERIFIED
+→ DOCTOR_REVIEWED
+
+Collection Centre ≠ Processing Lab.
+
+==================================================
+24. DIAGNOSTIC CATALOG
+==================================================
+
+Do not use tiny hardcoded dropdowns.
+
+Create scalable indexed searchable diagnostic catalog.
+
+Support:
+
+- canonical name
+- aliases
+- category
+- specimen
+- modality
+- workflow kind
+- result kind
+- parameters
+- units
+- reference ranges
+- facility capability mapping
+- processing requirements where applicable
+
+Use:
+- backend search
+- indexing
+- bounded results
+- pagination
+- typeahead
+- fuzzy/alias matching
+
+Do not load entire catalog into browser.
+
+==================================================
+25. SAMPLE QUALITY / CHAIN OF CUSTODY
+==================================================
+
+Where specimen-dependent:
+
+Support:
+- sample ID/barcode
+- collector
+- collection time
+- specimen type
+- container
+- temperature if applicable
+- viability if applicable
+- custody events
+- transport
+- handoffs
+- lab receipt
+- rejection
+- rejection reason
+- recollection
+
+Do NOT impose universal:
+- four-hour limits
+- temperature rules
+- viability rules
+
+Requirements must be test/specimen specific.
+
+==================================================
+26. CRITICAL RESULT WORKFLOW
+==================================================
+
+Verified critical result
+→ responsible clinician/facility alerted
+→ acknowledgement required
+→ escalation if not acknowledged
+→ full audit
+
+"Notification sent"
+does NOT equal
+"Clinician acknowledged."
+
+Critical thresholds must come from validated/versioned clinical rules, NOT LLM invention.
+
+==================================================
+27. MEDICINE MASTER
+==================================================
+
+Do not require doctors to manually remember exact medicine names.
+
+Build scalable medicine catalog/search architecture.
+
+Support:
+- generic name
+- brand
+- composition
+- strength
+- dosage form
+- route
+- manufacturer/catalog identifier where available
+- prescription/OTC classification when authoritative
+
+Doctor:
+
+types query
+→ relevant candidates
+→ generic/brand
+→ strength/form
+→ clinician selects
+→ dose/frequency/duration entered
+→ safety/context checks
+→ clinician signs
+
+AI may assist search/context.
+
+AI does not independently prescribe.
+
+Do not fabricate "every medicine in India".
+
+Build authoritative-data ingestion capability and realistic extensible master data.
+
+==================================================
+28. PRESCRIPTION VS MEDICINES
+==================================================
+
+PRESCRIPTION PAGE:
+
+- clinical prescription
+- doctor
+- facility
+- date
+- prescribed items
+- quantity
+- instructions
+- prescription status
+- source PDF/document
+- dispense status
+
+MY MEDICINES:
+
+- active/recent medicines
+- prescribed quantity
+- instructions
+- duration
+- dispensed quantity
+- remaining quantity
+- pharmacy
+- purchase/refill history
+- reminders
+- patient-reported status where relevant
+
+BUY/REFILL:
+
+- pharmacy selection
+- prescription fulfilment
+- actual stock where authoritative
+- partial fulfilment
+- order
+- delivery when supported
+- permitted OTC search
+
+==================================================
+29. PHARMACY ERP / POS
+==================================================
+
+Pharmacy must become proper operational software.
+
+Modules:
+
+Dashboard
+Prescription Queue
+Walk-in Prescription
+POS / New Sale
+Inventory
+Stock Receipt
+Batches
+Expiry
+Suppliers
+Purchases
+Returns
+Bills/Invoices
+Payments
+Online Orders
+Delivery/Fulfilment
+Low Stock
+Near Expiry
+Reports
+Audit
+AI Assistant
+
+DIGITAL PRESCRIPTION:
+patient assigns prescription
+→ pharmacy accesses minimum necessary prescription
+→ choose actual stock batch
+→ quantity
+→ expiry
+→ price
+→ partial/full fulfilment
+→ invoice
+→ persist transaction
+→ update patient prescription/medicines
+→ create permitted CareGraph/CareGap event
+
+WALK-IN DIGITAL:
+Prescription number / QR / token
+→ retrieve only if authorized
+→ fulfil.
+
+PAPER PRESCRIPTION:
+upload/scan
+→ preserve original
+→ patient/paper source
+→ structured pharmacist entry
+→ actual products dispensed
+→ bill
+→ optional patient linking
+
+Do not call paper prescription doctor-verified unless verified.
+
+OTC WALK-IN:
+SwasthyaSetu account not mandatory.
+
+Allow legitimate OTC/basic retail POS.
+
+Do not bypass prescription requirements.
+
+==================================================
+30. PHARMACY PRICE / SUPPLY TRANSPARENCY
+==================================================
+
+Where authoritative data exists preserve:
+
+- MRP
+- selling price
+- quantity
+- batch
+- expiry
+- pharmacy
+- invoice
+
+Do not invent prices.
+
+Architecture should support suspicious price/stock pattern detection for human/regulatory review.
+
+==================================================
+31. PHARMACY PRIVACY
+==================================================
+
+Pharmacy does NOT get:
+
+- full health history
+- unrelated diagnostic reports
+- unrelated psychiatric records
+- unrelated encounters
+
+Pharmacy receives minimum necessary data for fulfilment.
+
+Patient may see bill.
+
+Care engine may receive permitted structured dispensing event.
+
+Doctor should not automatically receive full pharmacy invoice unless consent/workflow permits.
+
+==================================================
+32. WORKER — ASSISTED RURAL CARE
+==================================================
+
+Critical requirement:
+
+DO NOT assume patient uses smartphone.
+
+Worker is last-mile assisted healthcare layer.
+
+Worker may represent:
+- ASHA-like worker
+- ANM/community worker
+- field coordinator
+
+Worker app:
+
+Today's Visits
+Assigned Villages
+Assigned Patients
+CareGaps
+Home Visits
+Assisted Patient Mode
+Appointments
+Tests/Samples
+Medicine Assistance
+Follow-ups
+Escalations
+Offline Queue
+Sync
+AI Prioritization
+
+ASSISTED MODE:
+
+worker reaches patient
+→ identifies patient
+→ confirms identity
+→ explains action
+→ records authorization/consent
+→ performs permitted workflow on behalf of patient
+
+May assist with:
+- registration
+- ABHA linking
+- hospital search
+- doctor search
+- appointment booking
+- teleconsult
+- diagnostic booking
+- sample coordination
+- medicine pickup
+- medicine delivery
+- old-record upload
+- follow-up
+- escalation
+
+Every delegated action:
+
+Performed by Worker X
+on behalf of Patient Y
+purpose
+timestamp
+authorization method
+
+Worker must not invisibly impersonate patient.
+
+==================================================
+33. OFFLINE-FIRST
+==================================================
+
+Field/rural worker workflows should support actual offline-capable architecture.
+
+When network unavailable:
+
+- minimal authorized context may be cached securely
+- visit outcome recorded
+- pending actions queued
+- sync on reconnect
+- retry handling
+- conflict handling
+- sensitive data minimized
+- revoked consent must invalidate future use where possible
+
+Do not build decorative "Offline" button only.
+
+==================================================
+34. INSURANCE / GOVERNMENT SCHEMES
+==================================================
+
+Build real architecture for:
+
+- patient insurance policies
+- government schemes
+- coverage
+- eligibility
+- authorization
+- claim lifecycle
+- claim documents
+- hospital linkage
+- claim status
+
+Allow plan/scheme discovery/enrolment only where legitimate external integration supports it.
+
+Do NOT fabricate:
+- policies
+- premiums
+- coverage
+- successful purchase
+- claim approval
+
+==================================================
+35. CARE PATHWAY RULES ENGINE
+==================================================
+
+This is a core SwasthyaSetu engine.
+
+Maintain approved/versioned care pathways/rules.
+
+Each pathway should support:
+- pathway ID
+- name
+- source
+- version
+- applicability
+- active/inactive state
+- dependencies
+- required events
+
+AI must NOT invent clinical pathways.
+
+CareGraph/CareGap may derive expectations from:
+- clinician orders
+- explicit care plans
+- approved pathway rules
+
+==================================================
+36. CAREGRAPH
+==================================================
+
+CareGraph is a live dependency graph of care.
+
+Example:
+
+Consultation
+→ Test ordered
+→ Diagnostic scheduled
+→ Diagnostic completed
+→ Report verified
+→ Doctor reviewed
+→ Prescription
+→ Dispensing
+→ Follow-up
+→ Closure
+
+Dependencies matter.
+
+Verified report with no doctor review = care still pending.
+
+CareGraph should track:
+- nodes
+- dependencies
+- evidence
+- blockers
+- status
+- next actions
+
+==================================================
+37. CAREGAP
+==================================================
+
+Preserve and expand existing CareGap.
+
+Possible CareGaps:
+
+- test ordered but not scheduled
+- collection due
+- sample collected but not received
+- report verified but not reviewed
+- prescription unfulfilled
+- prescription partially fulfilled
+- follow-up missed
+- referral incomplete
+- critical result unacknowledged
+- worker follow-up unsuccessful
+
+CareGap logic:
+rule/version driven.
+
+Not LLM guessing.
+
+==================================================
+38. RISK PRIORITY
+==================================================
+
+Architecture:
+
+ROUTINE
+→ automation/reminders
+
+HIGH
+→ human task
+
+CRITICAL
+→ clinician/facility escalation
+
+Use validated/versioned rules.
+
+AI may help summarize/prioritize within safe boundaries.
+
+AI must not invent clinical risk thresholds.
+
+==================================================
+39. RESOLUTION ENGINE
+==================================================
+
+Do not stop at gap detection.
+
+Determine feasible OPERATIONAL next steps.
+
+Examples:
+
+lab unavailable
+→ search capable alternatives
+→ patient confirmation
+→ reroute
+
+medicine unavailable
+→ find stock
+→ patient selects
+→ fulfil
+
+missed follow-up
+→ worker task
+
+sample rejected
+→ recollection workflow
+
+referral unavailable
+→ appropriate alternative facility
+→ confirmation
+
+Clinical treatment change remains clinician-controlled.
+
+==================================================
+40. NEXTSTEP ENGINE
+==================================================
+
+Create explicit patient-facing NextStep service.
+
+Answer:
+
+"Ab mujhe kya karna hai?"
+
+Based on real care state.
+
+Examples:
+- attend appointment
+- select diagnostic centre
+- sample collection pending
+- report ready
+- doctor review pending
+- collect medicine
+- follow-up due
+- worker assistance required
+
+No generic hardcoded advice.
+
+==================================================
+41. AUTONOMY LEVELS
+==================================================
+
+LEVEL 1 — Automatic operational:
+- reminders
+- retries
+- task creation
+- search
+- routine preapproved logistics
+
+LEVEL 2 — Confirmation required:
+- destination change
+- referral change
+- diagnostic rerouting
+- recollection
+- reservation
+- major logistics reroute
+
+LEVEL 3 — Never autonomous:
+- final diagnosis
+- prescription
+- dose change
+- medicine substitution
+- treatment modification
+- emergency clinical decision
+
+==================================================
+42. PROOF OF CARE
+==================================================
+
+Do not equate a UI click with completed care.
+
+Examples:
+
+Appointment complete
+→ signed encounter
+
+Diagnostic complete
+→ verified result/report
+
+Medicine obtained
+→ authenticated dispense event
+
+Follow-up complete
+→ documented/verified outcome where required
+
+Support closure states:
+
+COMPLETED
+CLINICALLY_CANCELLED
+PATIENT_DECLINED
+TRANSFERRED
+UNABLE_TO_COMPLETE
+DUPLICATE_ERROR
+DECEASED where applicable
+
+Also:
+
+EXTERNAL COMPLETION POSSIBLE — VERIFICATION PENDING
+
+==================================================
+43. COMMUNICATION TRUTH
+==================================================
+
+Communication states:
+
+QUEUED
+SENT
+DELIVERED
+ACKNOWLEDGED
+FAILED
+NO_RESPONSE
+
+Sent ≠ informed.
+
+Delivered ≠ understood.
+
+==================================================
+44. REFERRALS
+==================================================
+
+Closed-loop referral:
+
+referring provider
+→ reason
+→ capability requirement
+→ destination
+→ accept/reject
+→ booking/transfer
+→ arrival
+→ encounter
+→ permitted closure back to referrer
+
+Do not create referral and then lose track of outcome.
+
+==================================================
+45. EMERGENCY
+==================================================
+
+Prototype architecture/workflow:
+
+emergency request
+→ explicit location where permitted
+→ appropriate nearby facility
+→ capability
+→ capacity/freshness
+→ ambulance/referral
+→ controlled emergency access
+→ pre-arrival/handoff
+→ arrival
+
+If bed/capacity data stale:
+
+STATUS UNKNOWN — CONFIRMATION REQUIRED
+
+Do not fabricate live bed availability.
+
+==================================================
+46. BED / CAPACITY MANAGEMENT
+==================================================
+
+Hospital should support:
+
+- wards
+- rooms
+- beds
+- occupancy
+- reservation
+- cleaning/turnaround
+- capability
+- last updated
+- freshness state
+
+High-acuity stale capacity must be visibly uncertain.
+
+==================================================
+47. GOVERNMENT / PUBLIC HEALTH INTEGRATION
+==================================================
+
+Architect adapters for:
+
+- government hospital queue systems
+- public/government pharmacies
+- medicine availability/delivery systems
+- eSanjeevani
+- UHI
+- Ni-kshay
+- U-WIN
+- other authorized government platforms
+
+DO NOT recreate these complete systems inside SwasthyaSetu.
+
+SwasthyaSetu coordinates care across them.
+
+==================================================
+48. ABHA / ABDM / HPR / HFR
+==================================================
+
+Preserve registration architecture:
+
+PATIENT → ABHA
+DOCTOR → HPR
+HOSPITAL → HFR
+LAB → HFR
+PHARMACY → HFR where applicable
+WORKER → appropriate professional/authority identity or internal Worker ID
+
+Official integration:
+
+if configured:
+authenticate/verify via real API.
+
+if unavailable:
+clearly state unavailable.
+
+NEVER fake verification.
+
+Demo registration remains supported.
+
+Demo identity should remain clearly marked.
+
+==================================================
+49. REGISTRATION INFORMATION
+==================================================
+
+Profile/details should be collected once during registration.
+
+Do not force a second onboarding form containing the same registration details.
+
+Operational configuration happens separately.
+
+Examples:
+
+doctor:
+practice/schedule after registration.
+
+hospital:
+departments/services after registration.
+
+pharmacy:
+inventory after registration.
+
+lab:
+capabilities after registration.
+
+==================================================
+50. IDENTITY LIFECYCLE
+==================================================
+
+Architect for:
+
+- duplicate patient detection
+- identity linkage
+- merge
+- reversible unmerge
+- incorrect link correction
+- provider credential revocation
+- provider credential update
+- deceased state
+- guardian/dependent support where appropriate
+
+==================================================
+51. VERIFICATION / ADMIN
+==================================================
+
+Current manual SQL approval should not be final UX.
+
+Create Admin Governance Console.
+
+Support:
+
+Pending Doctors
+Pending Hospitals
+Pending Labs
+Pending Pharmacies
+Pending Workers
+Verification Details
+Documents
+Registry Status
+Approve
+Reject
+Suspend
+Revoke
+Notes
+Audit
+
+Fix duplicate verification-state bug.
+
+Current example problem:
+
+facilities.verification_status = APPROVED
+provider_profiles.verification_status = PENDING
+
+This must not be possible after redesign.
+
+Use:
+- one source of truth
+OR
+- atomic synchronized lifecycle
+
+Normal users must not self-approve.
+
+==================================================
+52. EXTERNAL SOFTWARE INTEGRATION HUB
+==================================================
+
+Goal:
+
+A hospital should be able to say:
+
+"Here is our API."
+
+without requiring application rewrite.
+
+Create adapter architecture for:
+
+- HIS/HMIS
+- FHIR
+- HL7
+- ABDM
+- LIS
+- RIS
+- PACS
+- pharmacy ERP/POS
+- insurer/TPA
+- analyzer
+- medical device
+- teleconsult systems
+- government systems
+
+Pipeline:
+
+External Source
+→ Adapter
+→ Authentication
+→ Normalization
+→ Terminology Mapping
+→ Provenance
+→ Domain/Event Model
+→ SwasthyaSetu
+
+Preserve original payload/value where clinically important.
+
+==================================================
+53. CLINICAL FRESHNESS
+==================================================
+
+Expose where meaningful:
+
+- source
+- event date
+- last verified
+- verification status
+- freshness
+
+Old data must not silently appear current.
+
+High-acuity stale operational information:
+
+STATUS UNKNOWN — CONFIRMATION REQUIRED
+
+==================================================
+54. CARE TWIN
+==================================================
+
+Care Twin:
+computational representation of current care journey.
+
+Should capture:
+- active care plan/pathway
+- completed steps
+- pending steps
+- dependencies
+- risks
+- CareGaps
+- next actions
+
+==================================================
+55. CARE REPLAY
+==================================================
+
+Allow retrospective view:
+
+- where did care stall?
+- what happened?
+- who acted?
+- what resolved it?
+- what evidence closed the step?
+
+Useful for:
+- quality
+- audit
+- operations
+- learning
+
+==================================================
+56. DISTRICT / OPERATIONS PULSE
+==================================================
+
+Aggregated operational intelligence:
+
+- diagnostic delays
+- medicine shortages
+- referral failures
+- follow-up backlog
+- capacity gaps
+- programme bottlenecks
+
+Avoid exposing unnecessary patient identities.
+
+==================================================
+57. FUTURE FEDERATED INTELLIGENCE
+==================================================
+
+Keep a FUTURE boundary for:
+
+privacy-preserving / federated operational intelligence and forecasting.
+
+Do not pretend federated intelligence is implemented unless it truly is.
+
+==================================================
+58. UI / UX — COMPLETE REDESIGN
+==================================================
+
+Current basic white-card UI is NOT acceptable.
+
+The product should look like a serious modern enterprise healthcare platform.
+
+DO NOT:
+- use giant empty white screens
+- fill every page with identical cards
+- reuse exact same layout for every role
+- show architecture bragging cards
+- show "153 tests available"
+- show meaningless AI cards
+- add nonfunctional buttons
+- show fake charts
+- show fake availability
+- make hospital screens look like patient screens
+
+Create original professional design.
+
+Visual direction:
+
+- calm modern healthcare palette
+- subtle tinted backgrounds/surfaces
+- strong information hierarchy
+- professional typography
+- clear spacing
+- accessible contrast
+- meaningful status colors
+- proper icons
+- structured ERP tables
+- sticky context headers
+- drawers/modals
+- command/search bars
+- breadcrumbs where helpful
+- segmented controls
+- skeleton loaders
+- polished loading state
+- polished empty state
+- polished error state
+- responsive desktop
+- responsive tablet
+- responsive mobile
+- keyboard accessibility
+- focus states
+
+PATIENT:
+simple and friendly.
+
+DOCTOR:
+dense clinical workstation.
+
+HOSPITAL:
+enterprise HIS/HMIS.
+
+LAB:
+professional LIS/RIS worklist.
+
+PHARMACY:
+ERP/POS.
+
+WORKER:
+mobile-first field application.
+
+ADMIN:
+governance console.
+
+Do not copy a copyrighted commercial interface.
+
+==================================================
+59. AI UI / COPILOT
+==================================================
+
+AI should NOT just be one floating chat button.
+
+Use context-aware AI surfaces:
+
+- AI Copilot side panel
+- ask free-form question
+- summarize
+- compare records
+- explain
+- highlight
+- generate operational suggestions
+- source references
+- suggested next action
+
+AI knows:
+- role
+- current page
+- current patient
+- current encounter/order/appointment
+- permissions
+- consent
+
+Show source/date where relevant.
+
+==================================================
+60. BILINGUAL / LOW-LITERACY
+==================================================
+
+English + simple spoken Hindi.
+
+Priority:
+Patient and Worker.
+
+Examples:
+
+Appointments:
+डॉक्टर से मिलने का समय
+
+Health Records:
+मेरी मेडिकल रिपोर्ट
+
+Diagnostics:
+जाँच / टेस्ट
+
+Prescription:
+डॉक्टर की पर्ची
+
+Facilities:
+अस्पताल / क्लिनिक
+
+Next Step:
+अब आपको क्या करना है
+
+Do not overwrite original clinical source text.
+
+Translated/simple explanation should be separate.
+
+==================================================
+61. VOICE
+==================================================
+
+Implement architecture/UI for:
+
+- page summary
+- NextStep
+- appointment instructions
+- medicine instructions
+- test instructions
+- doctor instructions
+- consent explanation
+- worker-assisted explanation
+
+Do not claim actual voice quality is verified unless it is tested.
+
+==================================================
+62. EQUITY / ACCESSIBILITY
+==================================================
+
+System must not disadvantage patients because they:
+
+- do not own smartphone
+- cannot use smartphone
+- have poor connectivity
+- have low literacy
+- cannot read English
+- do not have ABHA linked
+- need worker help
+
+Worker-assisted, voice, simple language and offline workflows are FIRST CLASS.
+
+==================================================
+63. DATA RETENTION
+==================================================
+
+Create/document retention policy matrix for:
+
+- clinical data
+- consent
+- audit
+- uploaded documents
+- AI context/logs where retained
+- operational events
+- communications
+- offline cache
+- integration payloads
+
+Do not use one blanket retention period.
+
+==================================================
+64. CYBERSECURITY / INCIDENT RESPONSE
+==================================================
+
+Architect/admin workflow for:
+
+- suspicious access
+- compromised credentials
+- unauthorized record access
+- integration compromise
+- session/token revocation
+- audit investigation
+- incident status
+- containment
+- remediation
+- administrative action
+
+==================================================
+65. SECURITY RULES
+==================================================
+
+Explicitly test:
+
+- Patient A cannot see Patient B.
+- Doctor cannot browse unrelated patients.
+- Lab cannot browse unassigned histories.
+- Pharmacy cannot read full patient record.
+- Worker cannot browse unrelated records.
+- Consent expiry/revocation blocks access.
+- AI cannot retrieve unauthorized patient context.
+- AI endpoint receives minimum necessary context.
+- Signed records cannot be silently edited.
+- Failed write never displays success.
+- Verification cannot be self-approved.
+- report storage stays private.
+- sensitive objects use authorized/signed retrieval.
+- sensitive reads/actions are audited.
+
+==================================================
+66. SCALABILITY
+==================================================
+
+Prototype size.
+
+National-scale-aware architecture.
+
+Use:
+
+- UUIDs
+- normalized relational core
+- FK constraints
+- useful indexes
+- append-only events where appropriate
+- server-side search
+- pagination
+- bounded queries
+- modular service boundaries
+- object storage
+- queue/event-ready design
+- future regionalization
+- future PostGIS
+- future search service
+- observability
+- replaceable AI gateway
+
+DO NOT:
+- load India-wide datasets into browser
+- store giant patient JSON blob
+- globally subscribe every client to realtime
+- claim Supabase prototype handles 1.5B users
+
+==================================================
+67. MASTER DATA
+==================================================
+
+User wants the application to feel intelligent and useful, not toy-sized.
+
+Do NOT artificially limit:
+
+- medicines
+- diagnostics
+- doctors
+- facilities
+- specialties
+- services
+
+Use scalable master-data search infrastructure.
+
+Where authoritative complete dataset unavailable:
+
+DO NOT fabricate completeness.
+
+Instead:
+- build import/ingestion architecture
+- seed realistic representative data
+- document required authoritative sources
+
+==================================================
+68. NO FAKE DATA CLAIMS
+==================================================
+
+Never fabricate:
+
+- ABHA verification
+- HPR verification
+- HFR verification
+- bed availability
+- doctor availability
+- consultation fees
+- medicine stock
+- lab price
+- insurance plan
+- diagnostic result
+- AI clinical answer
+- report verification
+
+Truthful states include:
+
+UNKNOWN
+NOT CONFIGURED
+LIVE INTEGRATION UNAVAILABLE
+CONFIRMATION REQUIRED
+
+==================================================
+69. IMPLEMENTATION CHECKPOINTS
+==================================================
+
+Do NOT recklessly modify everything at once.
+
+Work checkpoint by checkpoint.
+
+CHECKPOINT A — FOUNDATION
+- verification consistency
+- consent architecture
+- appointment server safety
+- longitudinal/provenance model
+- Care Pathway foundations
+- central AI orchestration
+- design-system foundation
+- role-specific shells
+- authorization tests
+
+CHECKPOINT B — PATIENT + DOCTOR
+- patient redesign
+- doctor discovery
+- facilities
+- schedules
+- fees
+- appointments
+- consent center
+- doctor clinical workstation
+- prescriptions vs medicines
+- AI patient/doctor
+- longitudinal history
+
+CHECKPOINT C — HOSPITAL HIS/HMIS
+- command centre
+- departments
+- doctors
+- staff
+- schedules
+- fees
+- reception
+- OPD
+- queue
+- beds
+- IPD/ADT core
+- billing architecture
+- insurance architecture
+- AI operations
+
+CHECKPOINT D — DIAGNOSTICS
+- preserve current P0
+- pathology
+- imaging
+- procedure workflows
+- diagnostic master
+- LIS
+- RIS/PACS adapters
+- critical result workflow
+- sample quality/custody
+- AI lab
+
+CHECKPOINT E — PHARMACY
+- ERP/POS
+- digital prescription
+- paper/walk-in
+- OTC
+- inventory
+- batch/expiry
+- suppliers
+- billing
+- delivery
+- price transparency
+- AI pharmacy
+
+CHECKPOINT F — WORKER
+- field dashboard
+- assisted mode
+- delegated actions
+- home visits
+- offline
+- sync
+- worker AI
+
+CHECKPOINT G — DOCUMENTS + DEEP AI
+- OCR
+- document understanding
+- structured extraction
+- grounded Snapshot
+- free-form AI
+- tool calls
+- source citations
+- model gateway
+- AI evaluation
+
+CHECKPOINT H — ADMIN + INTEGRATION
+- verification console
+- credential lifecycle
+- integration hub
+- FHIR
+- HL7
+- ABDM boundaries
+- HIS/LIS/RIS/pharmacy adapters
+- government adapter boundaries
+
+CHECKPOINT I — POLISH
+- complete UI/UX pass
+- mobile
+- Hindi
+- voice
+- loading/errors/empty states
+- accessibility
+- performance
+
+CHECKPOINT J — REAL E2E / AUDIT
+- disposable real Supabase
+- Auth
+- PostgREST
+- Storage
+- Edge Functions
+- real model if credentials available
+- multi-role E2E
+- security audit
+- requirement coverage audit
+
+==================================================
+70. AFTER EVERY CHECKPOINT
+==================================================
+
+After every meaningful checkpoint:
+
+1. Run automated tests.
+2. Add new tests.
+3. Run production build.
+4. Check desktop.
+5. Check mobile.
+6. Check Hindi where relevant.
+7. Check authorization-denial UX.
+8. Ensure failed writes do not show success.
+9. Check transaction rollback.
+10. Update CONTINUE.md.
+11. Update change manifest.
+12. Refresh source checkpoint export.
+13. Preserve exact next checkpoint state.
+
+Do not stop with unsaved/unverified work when usage limits approach.
+
+==================================================
+71. MANDATORY GOLDEN PATH
+==================================================
+
+The final prototype must demonstrate persisted state through:
+
+Patient registers
+→ searches hospital/doctor
+→ explicit location/manual search
+→ facility/practice selected
+→ consultation fee displayed
+→ actual available slot
+→ appointment booked
+→ hospital receives booking
+→ reception/check-in
+→ OPD queue
+→ doctor consultation
+→ consent requested
+→ patient grants access
+→ doctor sees authorized Snapshot/history
+→ encounter
+→ prescription and/or diagnostic order
+→ patient selects lab/collection centre where needed
+→ correct pathology/imaging/procedure workflow
+→ report verified
+→ published
+→ CareGap: doctor review pending
+→ doctor reviews
+→ pharmacy receives assigned prescription only
+→ inventory-backed dispense
+→ partial/full fulfilment
+→ invoice
+→ patient Prescription/My Medicines update
+→ follow-up
+→ missed follow-up
+→ Worker task
+→ assisted patient care
+→ outcome
+→ closure verification
+→ Proof of Care
+→ CareGap closed
+→ longitudinal record updated
+→ Snapshot updated
+→ AI can answer grounded questions from that history
+
+Also test:
+
+Patient A
+Patient B
+Doctor
+Hospital
+Lab
+Pharmacy
+Worker
+Admin
+
+Include at least:
+- digitally capable patient
+- assisted rural patient
+
+==================================================
+72. AI EVALUATION SUITE
+==================================================
+
+Create evaluation tests for:
+
+- hallucination
+- unsupported medical claim
+- wrong patient leakage
+- consent bypass
+- invalid source citation
+- stale data interpretation
+- missing-data handling
+- unsupported diagnosis
+- unsupported prescription advice
+- Hindi grounding
+- source provenance
+- prompt injection where relevant
+- tool authorization
+- model unavailable state
+
+Patient-related AI answers should remain traceable to permitted source records.
+
+==================================================
+73. FEATURE COMPLETION DEFINITION
+==================================================
+
+A feature is NOT implemented because:
+
+- a button exists
+- a card exists
+- page exists
+- mocked response exists
+- TODO interface exists
+- service stub exists
+- UI screenshot works
+
+"IMPLEMENTED" requires where applicable:
+
+- functional UI
+- functional backend
+- authorization
+- consent
+- persistence
+- real state transition
+- cross-role effect
+- error handling
+- audit
+- tests
+
+==================================================
+74. FINAL MASTER CONCEPT COVERAGE
+==================================================
+
+At final checkpoint compare:
+
+1. Original hardened master request
+2. Current master prompt
+3. CONTINUE.md
+4. All later user corrections
+
+Create a matrix:
+
+REQUIREMENT
+STATUS
+IMPLEMENTATION EVIDENCE
+TEST EVIDENCE
+EXTERNAL DEPENDENCY
+NOTES
+
+Statuses ONLY:
+
+IMPLEMENTED
+PARTIAL
+NOT IMPLEMENTED
+EXTERNAL API REQUIRED
+FUTURE-ONLY
+
+Do not inflate completion.
+
+==================================================
+75. PRODUCT PHILOSOPHY
+==================================================
+
+SMALL DATASET.
+COMPLETE ECOSYSTEM.
+
+Prototype does not need production national infrastructure today.
+
+But it MUST feel like an actual connected healthcare operating platform.
+
+Avoid:
+- hardcoded patients
+- hardcoded doctors
+- hardcoded reports
+- fake AI
+- fake verification
+- fake prices
+- fake availability
+- disconnected demo buttons
+
+Implementation complexity should remain hidden from users.
+
+==================================================
+76. FINAL PRODUCT FEEL
+==================================================
+
+PATIENT:
+simple intelligent healthcare journey.
+
+DOCTOR:
+serious clinical workstation.
+
+HOSPITAL:
+professional HIS/HMIS.
+
+LAB:
+real diagnostic operations environment.
+
+PHARMACY:
+real ERP/POS.
+
+WORKER:
+real rural/field-care application.
+
+ADMIN:
+professional healthcare platform governance.
+
+AI:
+actual central intelligence layer across all of them.
+
+==================================================
+77. START IMPLEMENTATION NOW
+==================================================
+
+Do this now:
+
+1. Read CONTINUE.md and all referenced current checkpoint documentation.
+2. Read the original hardened master request.
+3. Inspect actual current schema, source files and tests.
+4. Create a SHORT implementation plan internally.
+5. DO NOT stop after planning.
+6. Immediately begin CHECKPOINT A.
+7. Preserve all current working functionality.
+8. Do not touch D:\swasthyasetu-clean-core.
+9. Do not apply anything to live Supabase.
+10. Do not ask the user to manually perform work that can safely be completed inside this workspace.
+11. If external credentials/API access are missing, finish everything around the integration, provide truthful unavailable state and document the exact required configuration.
+12. Do not fake AI or external integrations.
+13. Test continuously.
+14. Before any usage/time stop:
+    - run tests
+    - run build
+    - update CONTINUE.md
+    - update change manifest
+    - create fresh checkpoint export
+    - record exact next action.
+
+The target is NOT:
+
+"a hackathon CRUD dashboard with many pages."
+
+The target is:
+
+A polished,
+AI-first,
+consent-aware,
+interoperable,
+role-specific,
+closed-loop healthcare coordination platform
+where real state flows across
+patients,
+doctors,
+hospitals,
+diagnostics,
+pharmacies,
+field workers,
+administrators
+and connected healthcare systems.
+
+AI + CARE COORDINATION are the primary differentiators.
+
+Do not sacrifice either.

@@ -1,0 +1,32 @@
+{
+  "name": "swasthyasetu-clean-core",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "node tests/contract-reconciliation.mjs && node tests/adapters.mjs && node tests/db/workflow.mjs && node tests/db/care.mjs && node tests/snapshot.mjs && node tests/db/consent.mjs && node tests/ai-gateway.mjs && node tests/db/appointments.mjs && node tests/frontend.mjs && node tests/runtime.mjs && node tests/ai-gemini.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.4",
+    "@tailwindcss/vite": "^4.2.1",
+    "clsx": "^2.1.1",
+    "jspdf": "^4.2.1",
+    "lucide-react": "^0.575.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "tailwind-merge": "^3.5.0",
+    "tailwindcss": "^4.2.1",
+    "tw-animate-css": "^1.4.0"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.2.0",
+    "typescript": "^5.8.3",
+    "vite": "^8.1.5"
+  }
+}

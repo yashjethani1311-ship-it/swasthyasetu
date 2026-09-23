@@ -1,0 +1,1 @@
+export function useAuth(){return {profile:{id:'00000000-0000-4000-8000-000000000001',role:new URLSearchParams(location.search).get('role')??'PATIENT',full_name:'UI test account'},signOut:async()=>{}}}

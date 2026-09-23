@@ -1,6 +1,37 @@
-node_modules
-dist
+# dependencies
+node_modules/
+frontend/node_modules/
+backend/node_modules/
+
+# builds/caches
+dist/
+frontend/dist/
+backend/dist/
+.vite/
+.cache/
+.test-runtime-dist/
+
+# env/secrets
 .env
-.env.local
+.env.*
+frontend/.env
+frontend/.env.*
+backend/.env
+backend/.env.*
+
+# logs
+*.log
+
+# generated/output artifacts
+output/
+*.zip
+
+# Supabase local/temp
+supabase/.temp/
+frontend/supabase/.temp/
+backend/supabase/.temp/
+
+# OS/editor
 .DS_Store
-.env.local
+Thumbs.db
+.vscode/

@@ -1,0 +1,27 @@
+import assert from 'node:assert/strict';
+import {db} from './migrations.mjs';
+const id=n=>`10000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
+const q=(s,a=[])=>db.query(s,a);const scalar=async(s,a=[])=>Object.values((await q(s,a)).rows[0])[0];
+async function as(n,fn){await db.exec('set role authenticated');await q("select set_config('request.jwt.claim.sub',$1,false)",[id(n)]);try{return await fn()}finally{await db.exec('reset role')}}
+let passed=0;const test=async(name,fn)=>{try{await fn();passed++;console.log('PASS '+name)}catch(e){console.error('FAIL '+name+': '+e.message);process.exitCode=1;throw Error(name+': '+e.message)}};
+await db.exec(`insert into auth.users(id) values ${[1,2,3,4,5,6,7].map(n=>`('${id(n)}')`).join(',')};
+insert into patient_profiles(id,user_id,patient_code,full_name) values('${id(11)}','${id(1)}','CORE-A','Fixture A'),('${id(12)}','${id(2)}','CORE-B','Fixture B');
+insert into provider_profiles(id,user_id,provider_type,full_name,verification_status) values ${[[3,'DOCTOR'],[4,'PHARMACY'],[5,'WORKER'],[6,'DOCTOR'],[7,'PHARMACY']].map(([n,t])=>`('${id(n+10)}','${id(n)}','${t}','Fixture ${t} ${n}','APPROVED')`).join(',')};
+insert into appointments(id,patient_id,doctor_provider_id,scheduled_at,mode,status) values('${id(20)}','${id(11)}','${id(13)}',now(),'PHYSICAL','CONFIRMED');
+insert into encounters(id,appointment_id,patient_id,doctor_provider_id,chief_complaint,clinical_notes,follow_up_in_days) values('${id(21)}','${id(20)}','${id(11)}','${id(13)}','New complaint','Actual source note',7);
+insert into diagnostic_tests(id,test_code,test_name) values('${id(22)}','CORE-TEST','Core test fixture');`);
+await q("insert into provider_practices(id,provider_id,practice_name,consultation_mode,timezone,consultation_fee) values($1,$2,'Schedule test practice','PHYSICAL','Asia/Kolkata',120)",[id(60),id(13)]);
+await q("insert into provider_schedules(provider_id,practice_id,day_of_week,start_time,end_time,slot_minutes) select $1,$2,n,'09:00','17:00',30 from generate_series(0,6) n",[id(13),id(60)]);
+await q("update provider_practices set city='Pune',district='Pune',state='Maharashtra',latitude=18.52,longitude=73.85 where id=$1",[id(60)]);
+await q("update provider_profiles set hpr_id='DEMO-HPR-DISCOVERY',specialization='General Medicine' where id=$1",[id(13)]);
+await q("insert into provider_practices(id,provider_id,practice_name,city,consultation_mode) values($1,$2,'Second place','Mumbai','TELECONSULT')",[id(61),id(13)]);
+const find=(filters={},offset=0,limit=25)=>as(1,()=>q('select * from d1_practices($1,$2,$3)',[JSON.stringify(filters),offset,limit]));
+await test('multiple practices retain distinct location, mode, fee and availability',async()=>{const rows=(await find()).rows;assert.equal(rows.length,2);const scheduled=rows.find(r=>r.practice_id===id(60));assert.equal(scheduled.availability_state,'NEXT_KNOWN_SLOT');assert.equal(Number(scheduled.consultation_fee),120);const unknown=rows.find(r=>r.practice_id===id(61));assert.equal(unknown.availability_state,'AVAILABILITY_UNKNOWN');assert.equal(unknown.distance_km,null);assert.equal(unknown.consultation_fee,null)});
+await test('HPR, specialization, location, fee and consultation mode filter at practice',async()=>{const r=(await find({hpr:'DEMO-HPR-DISCOVERY',specialization:'General Medicine',city:'pune',mode:'PHYSICAL',max_fee:120})).rows;assert.equal(r.length,1);assert.equal(r[0].practice_id,id(60));assert.equal((await find({mode:'TELECONSULT',has_slot:true})).rows.length,0)});
+await test('distance uses actual practice coordinates and missing coordinates stay unknown',async()=>{const r=(await find({latitude:18.52,longitude:73.85,radius_km:1})).rows;assert.equal(r.length,1);assert.equal(r[0].distance_km,0);await assert.rejects(()=>find({latitude:99,longitude:73,radius_km:1}),/coordinates/)});
+await test('pagination has no duplicates and invalid filters are rejected',async()=>{const a=(await find({},0,1)).rows,b=(await find({},1,1)).rows;assert.notEqual(a[0].practice_id,b[0].practice_id);await assert.rejects(()=>find({},0,51));await assert.rejects(()=>find({made_up:true}),/Unknown/)});
+await test('suspended doctor disappears from directory without fabricated next slot',async()=>{await q("update provider_profiles set verification_status='SUSPENDED' where id=$1",[id(13)]);assert.equal((await find()).rows.length,0);await q("update provider_profiles set verification_status='APPROVED' where id=$1",[id(13)])});
+await q("insert into facilities(id,owner_user_id,name,facility_type,city,latitude,longitude) values($1,$2,'Fixture Pharmacy','PHARMACY','Pune',18.52,73.85)",[id(91),id(4)]);
+await test('facility directory is approved-owner scoped with truthful operating freshness',async()=>{const r=(await as(1,()=>q('select * from d1_facilities($1)',[JSON.stringify({city:'Pune',type:'PHARMACY'})]))).rows;assert.equal(r.length,1);assert.equal(r[0].operating_state,'STATUS_UNKNOWN_CONFIRMATION_REQUIRED');await q("update provider_profiles set verification_status='SUSPENDED' where id=$1",[id(14)]);assert.equal((await as(1,()=>q('select * from d1_facilities()'))).rows.length,0)});
+await test('directory cannot disclose patient identity or clinical appointment content',async()=>{const r=(await find()).rows;assert.ok(r.length>0);assert.equal(r[0].patient_id,undefined);assert.equal(r[0].clinical_notes,undefined);await db.exec('set role anon');try{await assert.rejects(()=>q('select * from d1_practices()'))}finally{await db.exec('reset role')}});
+console.log(`${passed} discovery tests passed`);await db.close();

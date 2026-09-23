@@ -1,0 +1,24 @@
+import assert from 'node:assert/strict';
+import {db} from './migrations.mjs';
+const id=n=>`a0000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
+const q=(s,a=[])=>db.query(s,a),scalar=async(s,a=[])=>Object.values((await q(s,a)).rows[0])[0];
+async function as(n,f){await db.exec('set role authenticated');await q("select set_config('request.jwt.claim.sub',$1,false)",[id(n)]);try{return await f()}finally{await db.exec('reset role')}}
+let passed=0;async function test(name,f){try{await f();passed++;console.log('PASS '+name)}catch(e){throw Error(name+': '+e.message)}}
+await db.exec(`insert into auth.users(id) values('${id(1)}'),('${id(2)}'),('${id(3)}');
+insert into patient_profiles(id,user_id,patient_code,full_name) values('${id(11)}','${id(1)}','PROV-A','Fixture A'),('${id(12)}','${id(2)}','PROV-B','Fixture B');
+insert into provider_profiles(id,user_id,provider_type,full_name,verification_status) values('${id(13)}','${id(3)}','DOCTOR','Fixture doctor','APPROVED');
+insert into appointments(id,patient_id,doctor_provider_id,scheduled_at,mode,status) values('${id(20)}','${id(11)}','${id(13)}',now(),'PHYSICAL','CONFIRMED');
+insert into encounters(id,appointment_id,patient_id,doctor_provider_id,chief_complaint,clinical_notes) values('${id(21)}','${id(20)}','${id(11)}','${id(13)}','Source complaint','Original note');`);
+const history=(u=1,purpose='TREATMENT',before=null,limit=50)=>as(u,()=>q('select * from l1_history($1,$2,$3,$4)',[id(11),purpose,before,limit]));
+await test('source insertion creates dated original with unknown author preserved',async()=>{const h=(await history()).rows.filter(x=>x.source_kind==='encounters');assert.equal(h.length,1);assert.equal(h[0].original.clinical_notes,'Original note');assert.equal(h[0].verification_state,'DRAFT');assert.equal(h[0].source_provider_id,id(13));assert.equal(h[0].recorded_by,null)});
+await test('source updates append revisions without replacing original',async()=>{await as(3,()=>q("update encounters set clinical_notes='Revised note' where id=$1",[id(21)]));const h=(await history()).rows.filter(x=>x.source_kind==='encounters');assert.equal(h.length,2);assert.equal(h[0].revision,2);assert.equal(h[0].supersedes_id,h[1].id);assert.equal(h[1].original.clinical_notes,'Original note');assert.equal(h[0].recorded_by,id(3))});
+await test('raw provenance reads/writes and capture helper are denied',async()=>{await as(1,()=>assert.rejects(()=>q('select * from clinical_source_versions')));await as(3,()=>assert.rejects(()=>q('delete from clinical_source_versions')));await as(3,()=>assert.rejects(()=>q("select l1_capture('encounters','{}','INSERT')")))});
+await test('wrong patient and relationship alone cannot read history',async()=>{await assert.rejects(()=>history(2),/authorized/);await assert.rejects(()=>history(3),/consent/)});
+let consent;
+await test('category grant exposes matching records and audits access',async()=>{consent=await as(3,()=>scalar("select a1_request_consent($1,'TREATMENT',array['ENCOUNTERS'],'History review',now(),now()+interval '1 day')",[id(11)]));await as(1,()=>q("select a1_decide_consent($1,'GRANTED')",[consent]));const visible=(await history(3)).rows;assert.equal(visible.filter(x=>x.source_kind==='encounters').length,2);assert.ok(visible.every(x=>x.category==='ENCOUNTERS'));assert.ok(Number(await scalar("select count(*) from consent_audit where action='LONGITUDINAL_READ'"))>0);await assert.rejects(()=>history(3,'AI_ASSISTANCE'),/consent/)});
+await test('cursor pagination is stable and validation is bounded',async()=>{const first=(await history(1,'TREATMENT',null,1)).rows;const next=(await history(1,'TREATMENT',first[0].id,1)).rows;assert.equal(next.length,1);assert.notEqual(first[0].id,next[0].id);await assert.rejects(()=>history(1,'TREATMENT',null,101),/Invalid/)});
+await test('revocation blocks subsequent provenance reads',async()=>{await as(1,()=>q("select a1_decide_consent($1,'REVOKED')",[consent]));await assert.rejects(()=>history(3),/consent/)});
+await test('failed source transaction rolls back provenance revisions',async()=>{const before=await scalar('select count(*) from clinical_source_versions');await db.exec('begin');await q("update encounters set clinical_notes='Rolled back' where id=$1",[id(21)]);await db.exec('rollback');assert.equal(await scalar('select count(*) from clinical_source_versions'),before)});
+await test('uploaded document is unverified and source text remains unchanged',async()=>{await q("insert into health_records(patient_id,record_type,source_type,storage_path,original_filename) values($1,'REPORT','PATIENT_UPLOAD','private-object','Source report.pdf')",[id(11)]);const h=(await history()).rows.find(r=>r.source_kind==='health_records');assert.equal(h.verification_state,'UNVERIFIED');assert.equal(h.original.original_filename,'Source report.pdf')});
+console.log(`${passed} longitudinal provenance tests passed`);await db.close();
+

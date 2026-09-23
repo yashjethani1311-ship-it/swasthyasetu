@@ -1,0 +1,50 @@
+-- 045: governed source batches and versioned medicine master. No stock, price, batch number or expiry data.
+begin;
+create table master_import_batches(id uuid primary key default gen_random_uuid(),kind text not null check(kind in ('MEDICINE','DIAGNOSTIC')),source_name text not null,source_version text not null,source_reference text not null,assurance text not null check(assurance in ('DEMO','SOURCE_RECORDED')),effective_date date not null,content jsonb not null,request_key uuid not null unique,enabled boolean not null default true,created_by uuid not null references auth.users(id),created_at timestamptz not null default now(),disabled_by uuid references auth.users(id),disabled_at timestamptz,disabled_reason text,unique(kind,source_name,source_version));
+create table medicine_master(id uuid primary key default gen_random_uuid(),import_batch_id uuid not null references master_import_batches(id),source_code text not null,generic_name text not null,brand_name text,composition text,strength text,dosage_form text,route text,pack_description text,manufacturer text,regulatory_classification text,nlem boolean,jan_aushadhi_mapping text,aliases text[] not null default '{}',active boolean not null default true,updated_at timestamptz not null default now(),unique(import_batch_id,source_code));
+create index medicine_master_generic on medicine_master(lower(generic_name),id);
+create index medicine_master_brand on medicine_master(lower(brand_name),id);
+alter table master_import_batches enable row level security;alter table medicine_master enable row level security;
+revoke all on master_import_batches,medicine_master from public,anon,authenticated;
+create function k1_import(p_source text,p_version text,p_reference text,p_assurance text,p_effective date,p_rows jsonb,p_request uuid,p_dry_run boolean default true) returns jsonb language plpgsql security definer set search_path=public as $$
+declare row jsonb;batch master_import_batches;rid uuid;errors jsonb:='[]';n integer:=0;seen text[]:='{}';allowed text[]:=array['source_code','generic_name','brand_name','composition','strength','dosage_form','route','pack_description','manufacturer','regulatory_classification','nlem','jan_aushadhi_mapping','aliases','active'];
+begin
+ if auth.uid() is null or not is_admin() then raise exception 'Catalog governance required';end if;
+ if p_request is null or p_dry_run is null or p_effective is null or p_assurance is null or p_assurance not in ('DEMO','SOURCE_RECORDED') or coalesce(length(trim(p_source)),0) not between 3 and 200 or coalesce(length(trim(p_version)),0) not between 1 and 100 or coalesce(length(trim(p_reference)),0) not between 3 and 1000 or jsonb_typeof(p_rows) is distinct from 'array' then raise exception 'Source version, evidence, assurance and rows required';end if;
+ if jsonb_array_length(p_rows) not between 1 and 500 or octet_length(p_rows::text)>1000000 then raise exception 'Import limited to 500 rows / 1 MB';end if;
+ for row in select value from jsonb_array_elements(p_rows) loop
+ n:=n+1;
+ if jsonb_typeof(row)<>'object' then errors:=errors||jsonb_build_object('row',n,'error','OBJECT_REQUIRED');continue;end if;
+ if exists(select 1 from jsonb_object_keys(row) k where not(k=any(allowed))) then errors:=errors||jsonb_build_object('row',n,'error','UNKNOWN_FIELD');end if;
+ if jsonb_typeof(row->'source_code') is distinct from 'string' or coalesce(length(trim(row->>'source_code')),0) not between 1 and 100 or jsonb_typeof(row->'generic_name') is distinct from 'string' or coalesce(length(trim(row->>'generic_name')),0) not between 1 and 300 then errors:=errors||jsonb_build_object('row',n,'error','CODE_AND_GENERIC_REQUIRED');end if;
+ if row->>'source_code'=any(seen) then errors:=errors||jsonb_build_object('row',n,'error','DUPLICATE_CODE');end if;seen:=array_append(seen,row->>'source_code');
+ if exists(select 1 from jsonb_each(row) x where x.key not in ('aliases','active','nlem') and (jsonb_typeof(x.value) not in ('string','null') or length(x.value#>>'{}')>2000)) or (row?'active' and jsonb_typeof(row->'active')<>'boolean') or (row?'nlem' and jsonb_typeof(row->'nlem') not in ('boolean','null')) then errors:=errors||jsonb_build_object('row',n,'error','FIELD_TYPE_OR_LENGTH');end if;
+ if row?'aliases' then if jsonb_typeof(row->'aliases')<>'array' then errors:=errors||jsonb_build_object('row',n,'error','ALIASES_ARRAY_REQUIRED');elsif jsonb_array_length(row->'aliases')>30 or exists(select 1 from jsonb_array_elements(row->'aliases') a where jsonb_typeof(a)<>'string' or length(a#>>'{}')>200) then errors:=errors||jsonb_build_object('row',n,'error','ALIASES_INVALID');end if;end if;
+ if p_assurance='DEMO' and (nullif(row->>'regulatory_classification','') is not null or row->>'nlem' is not null or nullif(row->>'jan_aushadhi_mapping','') is not null) then errors:=errors||jsonb_build_object('row',n,'error','DEMO_REGULATORY_CLAIM_FORBIDDEN');end if;
+ end loop;
+ if p_dry_run then return jsonb_build_object('dry_run',true,'valid',jsonb_array_length(errors)=0,'row_count',n,'errors',errors,'persisted',false);end if;
+ if jsonb_array_length(errors)>0 then raise exception 'Invalid import: %',errors;end if;
+ perform pg_advisory_xact_lock(hashtext('MEDICINE:'||p_source));
+ select * into batch from master_import_batches where request_key=p_request or (kind='MEDICINE' and source_name=p_source and source_version=p_version) for update;
+ if found then if (batch.kind,batch.source_name,batch.source_version,batch.source_reference,batch.assurance,batch.effective_date,batch.content) is distinct from ('MEDICINE',p_source,p_version,p_reference,p_assurance,p_effective,p_rows) then raise exception 'Import source/version conflict';end if;return jsonb_build_object('batch_id',batch.id,'row_count',n,'enabled',batch.enabled,'duplicate',true);end if;
+ insert into master_import_batches(kind,source_name,source_version,source_reference,assurance,effective_date,content,request_key,created_by) values('MEDICINE',p_source,p_version,p_reference,p_assurance,p_effective,p_rows,p_request,auth.uid()) returning id into rid;
+ insert into medicine_master(import_batch_id,source_code,generic_name,brand_name,composition,strength,dosage_form,route,pack_description,manufacturer,regulatory_classification,nlem,jan_aushadhi_mapping,aliases,active)
+ select rid,x->>'source_code',trim(x->>'generic_name'),x->>'brand_name',x->>'composition',x->>'strength',x->>'dosage_form',x->>'route',x->>'pack_description',x->>'manufacturer',x->>'regulatory_classification',(x->>'nlem')::boolean,x->>'jan_aushadhi_mapping',array(select jsonb_array_elements_text(coalesce(x->'aliases','[]'))),coalesce((x->>'active')::boolean,true) from jsonb_array_elements(p_rows) x;
+ insert into audit_logs(actor_user_id,action,entity_type,entity_id) values(auth.uid(),'MEDICINE_MASTER_IMPORTED','master_import_batches',rid::text);
+ return jsonb_build_object('batch_id',rid,'row_count',n,'enabled',true,'duplicate',false);
+end $$;
+create function k1_disable_batch(p_batch uuid,p_reason text) returns void language plpgsql security definer set search_path=public as $$begin
+ if auth.uid() is null or not is_admin() or coalesce(length(trim(p_reason)),0) not between 3 and 2000 then raise exception 'Catalog governance and reason required';end if;
+ update master_import_batches set enabled=false,disabled_at=now(),disabled_by=auth.uid(),disabled_reason=p_reason where id=p_batch and enabled;
+ if found then insert into audit_logs(actor_user_id,action,entity_type,entity_id,metadata) values(auth.uid(),'CATALOG_BATCH_DISABLED','master_import_batches',p_batch::text,jsonb_build_object('reason',p_reason));end if;
+end $$;
+create function k1_medicines(p_query text default '',p_generic text default null,p_brand text default null,p_strength text default null,p_form text default null,p_active boolean default true,p_include_demo boolean default false,p_after uuid default null,p_limit integer default 30,p_id uuid default null) returns jsonb language plpgsql security definer set search_path=public as $$declare result jsonb;begin
+ if auth.uid() is null then raise exception 'Authentication required';end if;
+ if p_limit is null or p_limit not between 1 and 100 or length(coalesce(p_query,''))>200 or p_include_demo is null then raise exception 'Bounded search required';end if;
+ with latest as (select distinct on(b.source_name,m.source_code) m.*,b.source_name,b.source_version,b.source_reference,b.assurance,b.effective_date from medicine_master m join master_import_batches b on b.id=m.import_batch_id where b.enabled and b.effective_date<=current_date order by b.source_name,m.source_code,b.effective_date desc,b.created_at desc,b.id desc),items as (select * from latest m where (p_include_demo or assurance<>'DEMO') and (p_active is null or active=p_active) and (p_id is null or id=p_id) and (p_after is null or id>p_after) and (coalesce(p_query,'')='' or strpos(lower(generic_name||' '||coalesce(brand_name,'')||' '||array_to_string(aliases,' ')),lower(p_query))>0) and (p_generic is null or lower(generic_name)=lower(p_generic)) and (p_brand is null or lower(brand_name)=lower(p_brand)) and (p_strength is null or strength=p_strength) and (p_form is null or dosage_form=p_form) order by id limit p_limit)
+ select coalesce(jsonb_agg(to_jsonb(items) order by id),'[]') into result from items;
+ return jsonb_build_object('items',result,'next_after',case when jsonb_array_length(result)=p_limit then result->(p_limit-1)->>'id' end,'as_of',now(),'notice','Source-recorded catalog only. No stock, availability, pricing, substitution or regulatory verification is inferred. Disabled batches roll back to previous enabled source versions.');end $$;
+revoke all on function k1_import(text,text,text,text,date,jsonb,uuid,boolean),k1_disable_batch(uuid,text),k1_medicines(text,text,text,text,text,boolean,boolean,uuid,integer,uuid) from public,anon,authenticated;
+grant execute on function k1_import(text,text,text,text,date,jsonb,uuid,boolean),k1_disable_batch(uuid,text),k1_medicines(text,text,text,text,text,boolean,boolean,uuid,integer,uuid) to authenticated;
+commit;
+
