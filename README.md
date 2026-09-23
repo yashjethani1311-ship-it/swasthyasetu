@@ -1,4 +1,4 @@
-# SwasthyaSetu Clean Core
+# SwasthyaSetu
 
 Fresh implementation using the visual language/workflow style of V1, but **ZERO seeded healthcare data**.
 
