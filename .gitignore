@@ -35,3 +35,7 @@ backend/supabase/.temp/
 .DS_Store
 Thumbs.db
 .vscode/
+
+# Vercel local project state and environment downloads
+.vercel/
+*.tsbuildinfo
